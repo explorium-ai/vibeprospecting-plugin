@@ -1,0 +1,28 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Ensure setup script is absent
+        run: test ! -f setup.sh
+
+      - name: Verify vendored CLI runs
+        run: node skills/vibe-prospecting/scripts/vibep.js --help > /dev/null
+
+      - name: Verify skill requires JSON workflow
+        run: grep -q -- '--json' skills/vibe-prospecting/SKILL.md
