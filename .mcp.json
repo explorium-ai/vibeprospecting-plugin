@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "explorium-mcp": {
+      "type": "http",
+      "url": "https://mcp-feat-token-gateway-flavor.explorium-dev.workers.dev/mcp"
+    }
+  }
+}

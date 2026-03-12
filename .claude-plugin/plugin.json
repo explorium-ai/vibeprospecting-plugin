@@ -4,13 +4,5 @@
   "author": {
     "name": "Explorium"
   },
-  "version": "0.2.0",
-  "mcp_servers": [
-    {
-      "name": "explorium-mcp",
-      "description": "Explorium MCP token gateway. Provides get-auth-token to resolve an API key for the vibep CLI.",
-      "transport": "http",
-      "url": "https://mcp-feat-token-gateway-flavor.explorium-dev.workers.dev/mcp"
-    }
-  ]
+  "version": "0.2.0"
 }

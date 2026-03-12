@@ -1,0 +1,28 @@
+{
+  "name": "vibeprospecting",
+  "owner": {
+    "name": "Explorium",
+    "email": "support@explorium.ai"
+  },
+  "metadata": {
+    "description": "Explorium prospecting plugin — autocomplete filters, market stats, previews, CSV/JSON lead matching, enrichment, and event inspection via a vendored vibep CLI.",
+    "version": "0.2.0"
+  },
+  "plugins": [
+    {
+      "name": "vibeprospecting-plugin",
+      "source": {
+        "source": "github",
+        "repo": "explorium-ai/vibeprospecting-plugin"
+      },
+      "description": "Explorium prospecting via a vendored vibep CLI backed by an MCP token gateway. Autocomplete filters, run stats, fetch previews, match CSV/JSON inputs, enrich ids, and inspect events.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Explorium"
+      },
+      "homepage": "https://explorium.ai",
+      "repository": "https://github.com/explorium-ai/vibeprospecting-plugin",
+      "keywords": ["explorium", "prospecting", "b2b", "leads", "enrichment", "mcp"]
+    }
+  ]
+}
