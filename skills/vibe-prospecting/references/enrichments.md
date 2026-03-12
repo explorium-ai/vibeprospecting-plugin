@@ -1,6 +1,10 @@
 # Enrichments Reference
 
-Use `enrich` only on JSON inputs that already contain Explorium ids.
+Use `enrich` only on rows that already contain Explorium ids.
+
+- `businesses enrich` requires `business_id`
+- `prospects enrich` requires `prospect_id`
+- Use `--input @file.json` for prior JSON output, or `--from-file` / `--to-file` for CSV and JSON files
 
 ## Businesses
 
@@ -62,5 +66,6 @@ or a per-enrichment map:
 ## Example
 
 ```bash
-node "$CLI" businesses enrich --input @results.json --enrichments firmographics,technographics --json > /tmp/enriched.json
+node "$CLI" businesses enrich --input @results.json --enrichments firmographics,technographics --call-reasoning "$QUERY" > /tmp/enriched.json
+node "$CLI" prospects enrich --from-file matched.csv --enrichments contacts_information,profiles --to-file enriched.csv --call-reasoning "$QUERY"
 ```

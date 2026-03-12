@@ -24,5 +24,8 @@ jobs:
       - name: Verify vendored CLI runs
         run: node skills/vibe-prospecting/scripts/vibep.js --help > /dev/null
 
-      - name: Verify skill requires JSON workflow
-        run: grep -q -- '--json' skills/vibe-prospecting/SKILL.md
+      - name: Verify vendored CLI version metadata exists
+        run: test -f skills/vibe-prospecting/scripts/vibep.version
+
+      - name: Verify skill matches current CLI contract
+        run: ! grep -q -- '--json' skills/vibe-prospecting/SKILL.md && grep -q -- '--to-file' skills/vibe-prospecting/SKILL.md

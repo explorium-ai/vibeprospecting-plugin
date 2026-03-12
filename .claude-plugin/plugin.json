@@ -1,6 +1,6 @@
 {
   "name": "vibeprospecting-plugin",
-  "description": "B2B prospecting via Explorium. Find businesses and prospects, preview results safely, enrich records, and inspect events using the vendored vibep CLI.",
+  "description": "Explorium prospecting via a vendored vibep CLI. Autocomplete filters, run stats, fetch previews, match CSV/JSON inputs, enrich ids, and inspect events.",
   "author": {
     "name": "Explorium"
   },

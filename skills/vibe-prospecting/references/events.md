@@ -1,10 +1,13 @@
 # Events Reference
 
-Use `events` only on JSON inputs that already contain ids.
+Use `events` only on rows that already contain ids.
+
+- `businesses events` requires `business_id`
+- `prospects events` requires `prospect_id`
+- Optional time filters: `--since YYYY-MM-DD` and `--until YYYY-MM-DD`
+- Use `--input @file.json` for prior JSON output, or `--from-file` / `--to-file` for CSV and JSON files
 
 ## Business events
-
-Common event types:
 
 - `new_funding_round`
 - `ipo_announcement`
@@ -30,6 +33,28 @@ Common event types:
 - `lawsuits_and_legal_issues`
 - `outages_and_security_breaches`
 
+Additional hiring events supported by the CLI:
+
+- `hiring_in_creative_department`
+- `hiring_in_education_department`
+- `hiring_in_finance_department`
+- `hiring_in_health_department`
+- `hiring_in_human_resources_department`
+- `hiring_in_legal_department`
+- `hiring_in_operations_department`
+- `hiring_in_professional_service_department`
+- `hiring_in_support_department`
+- `hiring_in_trade_department`
+- `hiring_in_unknown_department`
+
+Additional department movement events supported by the CLI:
+
+- `increase_in_operations_department`
+- `increase_in_customer_service_department`
+- `decrease_in_marketing_department`
+- `decrease_in_operations_department`
+- `decrease_in_customer_service_department`
+
 ## Prospect events
 
 - `prospect_changed_role`
@@ -39,6 +64,6 @@ Common event types:
 ## Examples
 
 ```bash
-node "$CLI" businesses events --input @businesses.json --event-types new_funding_round,new_partnership --json > /tmp/business-events.json
-node "$CLI" prospects events --input @prospects.json --event-types prospect_changed_company --json > /tmp/prospect-events.json
+node "$CLI" businesses events --input @businesses.json --event-types new_funding_round,new_partnership --since 2025-01-01 --call-reasoning "$QUERY" > /tmp/business-events.json
+node "$CLI" prospects events --input @prospects.json --event-types prospect_changed_company --call-reasoning "$QUERY" > /tmp/prospect-events.json
 ```
