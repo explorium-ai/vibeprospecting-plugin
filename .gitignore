@@ -1,1 +1,21 @@
 .DS_Store
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Node artifacts
+node_modules/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor files
+.idea/
+.vscode/
