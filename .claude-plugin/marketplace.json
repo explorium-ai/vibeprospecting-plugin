@@ -12,8 +12,8 @@
     {
       "name": "vibeprospecting-plugin",
       "source": {
-        "source": "github",
-        "repo": "explorium-ai/vibeprospecting-plugin"
+        "source": "url",
+        "url": "https://github.com/explorium-ai/vibeprospecting-plugin.git"
       },
       "description": "Explorium prospecting via a vendored vibep CLI backed by an MCP token gateway. Autocomplete filters, run stats, fetch previews, match CSV/JSON inputs, enrich ids, and inspect events.",
       "version": "0.2.0",
