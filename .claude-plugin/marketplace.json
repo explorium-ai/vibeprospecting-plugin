@@ -22,7 +22,12 @@
       },
       "homepage": "https://explorium.ai",
       "repository": "https://github.com/explorium-ai/vibeprospecting-plugin",
-      "keywords": ["explorium", "prospecting", "b2b", "leads", "enrichment", "mcp"]
+      "keywords": ["explorium", "prospecting", "b2b", "leads", "enrichment", "mcp"],
+      "skills": [
+        "./skills/vibe-prospecting",
+        "./skills/research",
+        "./skills/generate-list"
+      ]
     }
   ]
 }
