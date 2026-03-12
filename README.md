@@ -26,9 +26,13 @@ node skills/vibe-prospecting/scripts/vibep.js --help
 - use `--to-file` for CSV/JSON exports, or shell redirection when you want the raw JSON envelope
 - pass `--call-reasoning` on API-facing commands when the original user prompt is available
 
-## Auth precedence
+## Auth
 
-1. `VP_API_KEY`
+The plugin ships an MCP server (`explorium-mcp`) that exposes a `get-auth-token` tool. The skill instructs the agent to call that tool first and export the returned `api_key` as `VP_API_KEY` before running any CLI command.
+
+Fallback precedence when the MCP server is unavailable:
+
+1. `VP_API_KEY` environment variable
 2. `~/.config/vibeprospecting/config.json`
 
 Optional override:

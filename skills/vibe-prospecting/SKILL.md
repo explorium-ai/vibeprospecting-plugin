@@ -21,14 +21,28 @@ Use the vendored CLI at `skills/vibe-prospecting/scripts/vibep.js`.
 
 ## Auth
 
+**Always obtain the token from the MCP server first.** Do not ask the user for an API key unless the MCP call fails.
+
+1. Call the `get-auth-token` tool on the `explorium-mcp` MCP server (no arguments required).
+2. Extract the `api_key` field from the response.
+3. Export it for the CLI session:
+   ```bash
+   export VP_API_KEY="<api_key from get-auth-token>"
+   ```
+4. All subsequent `node "$CLI" ...` commands in the same shell will use that key automatically.
+
+### Fallback
+
+If the MCP server is unreachable or returns an error:
+
 - Auth precedence is:
-  1. `VP_API_KEY`
+  1. `VP_API_KEY` environment variable (already set by the user)
   2. `~/.config/vibeprospecting/config.json`
 - Verify auth before starting a paid workflow:
   ```bash
   node "$CLI" auth status
   ```
-- If auth is missing, ask the user for an Explorium API key and then either:
+- If auth is still missing, ask the user for an Explorium API key and then either:
   ```bash
   export VP_API_KEY="your-key"
   ```
@@ -36,7 +50,7 @@ Use the vendored CLI at `skills/vibe-prospecting/scripts/vibep.js`.
   ```bash
   node "$CLI" auth login --api-key "your-key"
   ```
-- Mention that `VP_API_KEY` overrides stored config.
+- `VP_API_KEY` always overrides stored config.
 
 ## File Workflow
 
@@ -96,6 +110,15 @@ Use the vendored CLI at `skills/vibe-prospecting/scripts/vibep.js`.
 
 ## Examples
 
+### Obtain token then run a workflow
+
+First, call the `get-auth-token` MCP tool. Then use the returned `api_key`:
+
+```bash
+CLI="skills/vibe-prospecting/scripts/vibep.js"
+export VP_API_KEY="<api_key from get-auth-token>"
+```
+
 ### Autocomplete then stats
 
 ```bash
@@ -136,3 +159,4 @@ node "$CLI" prospects events --input @prospects.json --event-types prospect_chan
 - Use `references/filters.md` for filter structure, shared keys, and autocomplete-supported fields.
 - Use `references/enrichments.md` for supported enrichment names and parameter notes.
 - Use `references/events.md` for supported business and prospect event types.
+- Use `references/mcp-auth.md` for the MCP token gateway details and response shape.
