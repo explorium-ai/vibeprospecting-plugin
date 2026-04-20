@@ -1,0 +1,14 @@
+{
+  "name": "vpai",
+  "version": "0.1.27",
+  "description": "Power your chat with B2B data to create lead lists, research companies, personalize your outreach, and more. Search any company or professional to access emails, phone numbers, roles, growth signals, tech stack details, business events, website changes, and more.",
+  "author": {
+    "name": "vibeprospecting.ai",
+    "url": "https://vibeprospecting.ai"
+  },
+  "homepage": "https://vibeprospecting.ai",
+  "repository": "https://vibeprospecting.ai",
+  "license": "MIT",
+  "keywords": ["b2b", "prospecting", "leads", "sales", "enrichment", "companies", "contacts"],
+  "skills": "./skills/"
+}
