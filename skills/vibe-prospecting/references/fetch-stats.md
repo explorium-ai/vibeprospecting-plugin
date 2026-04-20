@@ -4,6 +4,8 @@ Use statistics commands when you need counts and breakdowns without fetching ind
 
 In cowork mode, use `fetch-entities-statistics` for both business and prospect counts. Set `entity_type` to `business` or `prospect`.
 
+Optional **`session_id`** in `--args` after `autocomplete` or an earlier stats/fetch step in the same user task.
+
 ## `fetch-entities-statistics` for businesses
 
 Returns total counts and market sizing summaries for company searches.

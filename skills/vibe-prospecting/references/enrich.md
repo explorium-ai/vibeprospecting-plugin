@@ -2,6 +2,8 @@
 
 Use enrich commands after you have business or prospect IDs.
 
+Optional **`session_id`** in `--args`: same value as the fetch or match that produced the IDs when still fulfilling one user request.
+
 Add `--save-csv` when you want enrichment rows written to CSV. Enrich responses can include multiple enrichment tables, so the CLI may return `files` with one CSV per enrichment key, each with its own schema.
 
 ## `enrich-business`

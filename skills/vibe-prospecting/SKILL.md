@@ -3,7 +3,7 @@ name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
 compatibility: Run with npx @vibeprospecting/vpai@latest
 metadata:
-  version: "0.1.27"
+  version: "0.1.28"
 ---
 
 # Vibe Prospecting CLI
@@ -30,6 +30,10 @@ You **do not** pass `--tool-reasoning` when you are **only** inspecting schemas:
 Example:
 
 `npx @vibeprospecting/vpai@latest match-business --args '{"businesses_to_match":[{"name":"Google"}]}' --tool-reasoning 'User asked to identify Google as a company'`
+
+## Session ID
+
+Optional **`session_id`** belongs **inside** the `--args` JSON (no separate flag). Reuse the exact string from the **previous** tool’s JSON in the **same** user task (including from autocomplete when the body is `{ "data": [...], "session_id": "..." }`). Omit it when the user starts a **new unrelated** ask.
 
 ## Task Mode Selection
 
@@ -187,6 +191,8 @@ Boolean filters are plain `true` / `false` / `null` (not wrapped in `values`).
 
 ## Common Multi-Step Workflows
 
+In the examples below, replace **`SESSION_ID`** with the `session_id` string from the **previous** tool’s JSON for the same user request (skip on the first call of a new task).
+
 ### Authenticate then run a workflow
 
 Run **Step 0** from **Auth** first, then continue below.
@@ -194,34 +200,34 @@ Run **Step 0** from **Auth** first, then continue below.
 ### "Tell me everything about Stripe"
 ```bash
 npx @vibeprospecting/vpai@latest match-business --args '{"businesses_to_match":[{"name":"Stripe","domain":"stripe.com"}]}'
-npx @vibeprospecting/vpai@latest enrich-business --args '{"business_ids":["<id>"],"enrichments":["firmographics","technographics","funding-and-acquisitions","competitive-landscape","strategic-insights","workforce-trends"]}'
+npx @vibeprospecting/vpai@latest enrich-business --args '{"session_id":"SESSION_ID","business_ids":["<id>"],"enrichments":["firmographics","technographics","funding-and-acquisitions","competitive-landscape","strategic-insights","workforce-trends"]}'
 ```
 
 ### "Find VP Engineering contacts at SaaS companies in New York"
 ```bash
 npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"linkedin_category","query":"software"}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"prospect","filters":{"job_level":{"values":["vice president"]},"job_department":{"values":["engineering"]},"linkedin_category":{"values":["Software Development"]},"company_region_country_code":{"values":["US-NY"]},"has_email":true}}'
-npx @vibeprospecting/vpai@latest enrich-prospects --args '{"prospect_ids":["pro_1","pro_2","pro_3"],"enrichments":["contacts","profiles"]}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"session_id":"SESSION_ID","entity_type":"prospect","filters":{"job_level":{"values":["vice president"]},"job_department":{"values":["engineering"]},"linkedin_category":{"values":["Software Development"]},"company_region_country_code":{"values":["US-NY"]},"has_email":true}}'
+npx @vibeprospecting/vpai@latest enrich-prospects --args '{"session_id":"SESSION_ID","prospect_ids":["pro_1","pro_2","pro_3"],"enrichments":["contacts","profiles"]}'
 ```
 
 ### "Find companies that just raised funding and use Salesforce"
 ```bash
 npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"company_tech_stack_tech","query":"salesforce"}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"business","filters":{"company_tech_stack_tech":{"values":["Salesforce"]},"events":{"values":["new_funding_round"],"last_occurrence":60}}}'
-npx @vibeprospecting/vpai@latest fetch-businesses-events --args '{"business_ids":["<ids>"],"event_types":["new_funding_round"],"timestamp_from":"2024-10-01"}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"session_id":"SESSION_ID","entity_type":"business","filters":{"company_tech_stack_tech":{"values":["Salesforce"]},"events":{"values":["new_funding_round"],"last_occurrence":60}}}'
+npx @vibeprospecting/vpai@latest fetch-businesses-events --args '{"session_id":"SESSION_ID","business_ids":["<ids>"],"event_types":["new_funding_round"],"timestamp_from":"2024-10-01"}'
 ```
 
 ### "Who are the decision makers at our top accounts?"
 ```bash
 npx @vibeprospecting/vpai@latest match-business --args '{"businesses_to_match":[{"domain":"company1.com"},{"domain":"company2.com"}]}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"prospect","filters":{"business_id":{"values":["biz_1","biz_2"]},"job_level":{"values":["c-suite","vice president","director"]},"has_email":true}}'
-npx @vibeprospecting/vpai@latest enrich-prospects --args '{"prospect_ids":["<ids>"],"enrichments":["contacts","profiles"]}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"session_id":"SESSION_ID","entity_type":"prospect","filters":{"business_id":{"values":["biz_1","biz_2"]},"job_level":{"values":["c-suite","vice president","director"]},"has_email":true}}'
+npx @vibeprospecting/vpai@latest enrich-prospects --args '{"session_id":"SESSION_ID","prospect_ids":["<ids>"],"enrichments":["contacts","profiles"]}'
 ```
 
 ### "Market sizing: US healthcare IT"
 ```bash
 npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"linkedin_category","query":"health"}'
-npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type":"business","filters":{"linkedin_category":{"values":["Health, Wellness & Fitness","Hospital & Health Care"]},"country_code":{"values":["US"]}}}'
+npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"session_id":"SESSION_ID","entity_type":"business","filters":{"linkedin_category":{"values":["Health, Wellness & Fitness","Hospital & Health Care"]},"country_code":{"values":["US"]}}}'
 ```
 
 ---

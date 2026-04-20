@@ -2,6 +2,8 @@
 
 Use match commands when you know the entity already and need canonical IDs for follow-up enrichment or event fetches.
 
+Optional **`session_id`** in `--args` when this match is part of the same user task as a prior tool; pass the id returned in that tool’s JSON.
+
 Add `--save-csv` when you want the returned `matched_businesses[]` or `matched_prospects[]` rows written to a CSV file. The CLI will return JSON with the CSV path and column list.
 
 ## `match-business`

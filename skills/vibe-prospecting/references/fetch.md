@@ -4,6 +4,8 @@ Use fetch commands to search for businesses or prospects, retrieve event details
 
 In cowork mode, use `fetch-entities` for both business and prospect search. Set `entity_type` to `business` or `prospect`.
 
+Optional **`session_id`** in `--args`: reuse the value from the previous tool in the same user task when chaining after autocomplete, match, or an earlier fetch.
+
 Add `--save-csv` when you want the returned `data[]` rows written to a CSV file. The CLI will return JSON with the CSV path and column list.
 
 ## `fetch-entities` for businesses

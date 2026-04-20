@@ -2,6 +2,8 @@
 
 Use `autocomplete` before any search that depends on controlled vocabulary fields.
 
+Responses may include **`session_id`** (top-level or next to **`data`** in a wrapper object). Pass that same value as **`session_id`** in the next tool’s `--args` for the same user task.
+
 ## Fields That Require Autocomplete
 
 - `linkedin_category`
@@ -33,4 +35,7 @@ npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"company_tech_sta
 npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"job_title","query":"data scientist"}'
 npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"business_intent_topics","query":"cloud security"}'
 npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"naics_category","query":"healthcare"}'
+
+# Reuse session_id from the autocomplete JSON on the following fetch (same user request)
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"session_id":"SESSION_ID","entity_type":"business","filters":{"linkedin_category":{"values":["Software Development"]}}}'
 ```
