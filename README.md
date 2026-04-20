@@ -1,27 +1,36 @@
-# Vibe Prospecting AI (vpai)
+# Vibe Prospecting (vpai)
 
-Bring B2B prospecting into your AI assistant. Search companies and people, build lead lists, enrich records, and research accounts without leaving the chat. Use it for outbound prep, territory planning, hiring research, and anything that needs firmographic and contact intelligence.
+**Power your chat with B2B data to create lead lists, research companies, personalize your outreach, and more.**
 
-**What you can do**
+This plugin connects your AI assistant to live company and contact intelligence: search, enrichment, and workflow-friendly tools so you can turn natural language into structured prospecting work without leaving the chat.
 
-- Find and filter companies and professionals with structured criteria (role, industry, tech stack, location, signals, and more).
-- Match free-text names to canonical business or person records.
-- Enrich existing lists with emails, phones, titles, and company context.
-- Work with large result sets via export-friendly flows when you need files, not walls of JSON.
+## What you get
 
-**Coverage**
+- **Company search** — Find companies by name, domain, or attributes (industry, tech stack, location, signals, and more).
+- **Contact discovery** — Locate and enrich business contacts with roles, emails, phones, and context.
+- **Real-time data** — Answers are backed by current B2B data at scale (150M+ companies, 800M+ professionals, 50+ data sources).
+- **Workflow automation** — Build lists, match free-text names to records, export larger results when you need files instead of raw JSON in chat.
 
-Data spans 150M+ companies, 800M+ professionals, and 50+ data sources, surfaced through a consistent tool interface.
+## Examples
 
-**Getting started**
+Ask things like:
+
+- “Who should I contact for a partnership at monday.com? Bring contact details.”
+- “What are the main business challenges of Amazon?”
+- “Who is on the engineering leadership team at Palo Alto Networks?”
+
+## Getting started
 
 1. Install this plugin in Claude Code (or your compatible environment).
-2. Open the **vibe-prospecting** skill and follow **login** to connect your account and complete setup.
-3. Run tools through the documented CLI command (`npx @vibeprospecting/vpai@latest`) so calls reach the Vibe Prospecting MCP server with the right auth and parameters.
+2. Open the **vibe-prospecting** skill and complete **login** so your account is connected.
+3. Run tools with the CLI as documented in the skill (`npx @vibeprospecting/vpai@latest`) so calls reach the Vibe Prospecting MCP server with the right auth and parameters.
 
-**Learn more**
+The underlying MCP server is the same product family as our open [Vibe Prospecting MCP](https://github.com/explorium-ai/vibeprospecting-mcp) project—use that repo if you want the MCP server or Gemini CLI extension directly.
 
-- Product and account: [vibeprospecting.ai](https://vibeprospecting.ai)
-- Skill details and tool usage: [`skills/vibe-prospecting/SKILL.md`](skills/vibe-prospecting/SKILL.md)
+## Learn more
+
+- **Product and site:** [vibeprospecting.ai](https://vibeprospecting.ai)
+- **Skill and tool reference:** [`skills/vibe-prospecting/SKILL.md`](skills/vibe-prospecting/SKILL.md)
+- **Help:** [support@vibeprospecting.ai](mailto:support@vibeprospecting.ai)
 
 Licensed under the MIT License.
