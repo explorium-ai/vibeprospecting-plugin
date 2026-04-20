@@ -2,6 +2,18 @@
 
 This file documents the exact steps required to authenticate `npx @vibeprospecting/vpai@latest` in a Cowork sandbox session. Follow this before running any vpai tool.
 
+## Fast Path
+
+Most sessions only need these three lines:
+
+```bash
+mcp__cowork__request_cowork_directory path=~/.config/vpai
+API_KEY=$(python3 -c "import json;print(json.load(open('/sessions/<session-id>/mnt/vpai/config.json'))['api_key'])")
+npx @vibeprospecting/vpai@latest config --api-key "$API_KEY"
+```
+
+If that fails, continue with the full flow below.
+
 ---
 
 ## Step 1 — Use the CLI via npx
@@ -135,6 +147,15 @@ npx @vibeprospecting/vpai@latest --help
 
 If the help output lists all tools (`match-business`, `fetch-entities`, etc.), the CLI is ready.
 
+Before the first `--save-csv` call in a sandbox, set `TMPDIR` to a writable path outside `~/.config/vpai/`:
+
+```bash
+export TMPDIR=/sessions/<session-id>/tmp-vpai
+mkdir -p "$TMPDIR"
+```
+
+The CLI defaults to `/tmp/vpai-csv-exports/` for CSV output. In restricted sandboxes that path can fail with `EACCES`.
+
 ---
 
 ## Quick Reference
@@ -214,3 +235,4 @@ npx @vibeprospecting/vpai@latest config --api-key "<tenant-api-key>"
 - The sandbox `~/.config/vpai/config.json` is **not durable** — it is recreated each session. Always read the key from the mounted local machine path.
 - The local machine's `~/.config/vpai/config.json` is the single source of truth for the API key.
 - No file other than `config.json` should ever be saved under `~/.config/vpai/`.
+- Do not use `~/.config/vpai/` for exports or temp files. Use `TMPDIR=/sessions/<session-id>/tmp-vpai` or another writable sandbox path instead.

@@ -6,9 +6,14 @@ Optional **`session_id`** in `--args` when this match is part of the same user t
 
 Add `--save-csv` when you want the returned `matched_businesses[]` or `matched_prospects[]` rows written to a CSV file. The CLI will return JSON with the CSV path and column list.
 
+Limits:
+
+- `match-business`: up to 50 rows per call
+- `match-prospects`: up to 40 rows per call
+
 ## `match-business`
 
-Returns business IDs required by `enrich-business` and `fetch-businesses-events`. Not needed if you already ran `fetch-entities` with `"entity_type":"business"` because those results include IDs.
+Returns business IDs required by `enrich-business` and `fetch-businesses-events`. Not needed if you already ran `fetch-entities` with `"entity_type":"businesses"` because those results include IDs.
 
 ```bash
 # By name + domain (most accurate)
@@ -20,7 +25,7 @@ npx @vibeprospecting/vpai@latest match-business --args '{"businesses_to_match":[
 
 ## `match-prospects`
 
-Returns prospect IDs for `enrich-prospects` and `fetch-prospects-events`. Not needed if you already ran `fetch-entities` with `"entity_type":"prospect"`.
+Returns prospect IDs for `enrich-prospects` and `fetch-prospects-events`. Not needed if you already ran `fetch-entities` with `"entity_type":"prospects"`.
 
 ```bash
 # By email (most reliable)

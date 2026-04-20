@@ -39,3 +39,10 @@ npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"naics_category",
 # Reuse session_id from the autocomplete JSON on the following fetch (same user request)
 npx @vibeprospecting/vpai@latest fetch-entities --args '{"session_id":"SESSION_ID","entity_type":"business","filters":{"linkedin_category":{"values":["Software Development"]}}}'
 ```
+
+## Picking Values
+
+- Autocomplete can return noisy variants such as misspellings, spacing variants, and compound titles.
+- Pick the canonical clean value only, usually the first clean result.
+- Passing multiple autocomplete values broadens matching with OR logic. Do not include near-duplicates unless you want a wider search.
+- For executive title searches, prefer `job_level` plus the cleanest `job_title` value.

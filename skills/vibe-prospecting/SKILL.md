@@ -3,12 +3,24 @@ name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
 compatibility: Run with npx @vibeprospecting/vpai@latest
 metadata:
-  version: "0.1.28"
+  version: "0.1.29"
 ---
 
 # Vibe Prospecting CLI
 
-Run with `npx @vibeprospecting/vpai@latest`. The CLI executes tools against the Vibe Prospecting MCP server (`https://mcp.explorium.ai/mcp`) and returns raw JSON results. Treat every tool response as JSON, not prose.
+Run with `npx @vibeprospecting/vpai@latest`. The CLI executes tools against the Vibe Prospecting MCP server (`https://vp-plugin.explorium.ai/mcp`) and returns raw JSON results. Treat every tool response as JSON, not prose.
+
+## Fast Auth
+
+For most sandbox sessions, the API key already exists on disk. Use this fast path first:
+
+```bash
+mcp__cowork__request_cowork_directory path=~/.config/vpai
+API_KEY=$(python3 -c "import json;print(json.load(open('/sessions/<session-id>/mnt/vpai/config.json'))['api_key'])")
+npx @vibeprospecting/vpai@latest config --api-key "$API_KEY"
+```
+
+If that mount fails or `config.json` is missing, use the fallback flow in [`login.md`](references/login.md).
 
 ## Prerequisites
 
@@ -24,6 +36,8 @@ Complete first login and setup via [`login.md`](references/login.md) before usin
 When you run a tool for real (anything other than **only** `<tool> --all-parameters` with **no** `--args`), the CLI requires **`--tool-reasoning '<text>'`**.
 
 Put the **end-user request** that this call is fulfilling in that text: **their wording** from the chat (what they asked you to find or do). The CLI sends it as MCP `tool_reasoning`. Do **not** use a separate “why I picked this tool” explanation instead of the user’s request.
+
+Reuse the same user wording across the whole workflow when the task has not changed. `tool_reasoning` is for auditability of the original request, not a per-step justification.
 
 You **do not** pass `--tool-reasoning` when you are **only** inspecting schemas: `npx @vibeprospecting/vpai@latest <tool> --all-parameters` with no `--args`.
 
@@ -58,10 +72,34 @@ If the user already clearly requested one of these modes, follow it without aski
 ## Export Mode
 
 - Use file-first output handling.
-- For `fetch-entities`, `match`, and `enrich` calls, always add `--save-csv`.
+- Before any `--save-csv` call, set `TMPDIR` to a writable sandbox path, for example `TMPDIR=/sessions/<id>/tmp-vpai`, then `mkdir -p "$TMPDIR"`.
+- Use `--save-csv` for `fetch-entities`, `match-business`, and `match-prospects`.
+- Do not assume cowork `enrich-*` works with `--save-csv`; check the compatibility table below first.
 - Work from the saved files instead of pasting large raw payloads into chat.
 - Prefer export mode whenever the result can exceed 50 rows or when the user asks for a deliverable/output file.
 - In chat, return a concise summary plus the saved file path(s).
+
+## Limits
+
+Use these limits when planning batches. If a live schema conflicts with this table, trust the stricter observed partner/runtime limit.
+
+| Tool | Practical limit | Notes |
+|------|-----------------|-------|
+| `match-business` | 50 businesses per call | Cowork schema limit |
+| `match-prospects` | 40 prospects per call | Cowork schema limit |
+| `enrich-business` | 50 business IDs per call | Partner/runtime limit is 50 even if a schema snapshot suggests 100 |
+| `enrich-prospects` | 50 prospect IDs per call | Partner/runtime limit is 50 even if a schema snapshot suggests 100 |
+| `fetch-entities` | keep `page_size` stable across pagination | Cowork schema allows up to 500; prospect fetches typically use cursor pagination |
+
+## `--save-csv` Compatibility
+
+| Tool | `--save-csv` | Notes |
+|------|--------------|-------|
+| `fetch-entities` | yes | Preserves pagination metadata in the CSV response |
+| `match-business` | yes | Returns one CSV result object |
+| `match-prospects` | yes | Returns one CSV result object |
+| `enrich-business` | no for cowork enrich payloads | Cowork enrich responses return stringified `enrichment_results`; capture raw JSON instead |
+| `enrich-prospects` | no for cowork enrich payloads | Cowork enrich responses return stringified `enrichment_results`; capture raw JSON instead |
 
 ## Autocomplete First
 
@@ -106,10 +144,11 @@ Do not rely on `--all-parameters` alone.
 - [`match.md`](references/match.md) - resolve known entities into canonical IDs
 - [`enrich.md`](references/enrich.md) - enrich businesses and prospects after you have IDs
 - [`fetch-stats.md`](references/fetch-stats.md) - counts and market-sizing queries without fetching records
+- [`enums.md`](references/enums.md) - consolidated fixed enums and common filter values
 
 ## Mandatory 3-Step Workflow
 
-**This rule applies to every tool. The first time you use any tool, you must read the matching reference doc and then run that exact tool with `--all-parameters` before executing it with `--args`. Only after you have read the reference doc and inspected that tool's schema may you skip `--all-parameters` on later calls to the same tool.**
+**This rule applies the first time you use a tool in a task. Read the matching reference doc and inspect that tool with `--all-parameters` before the first real call. Reuse that context for later calls in the same task unless you suspect schema drift or need a field you have not inspected yet.**
 
 **The first fetch/enrich in a conversation MUST be preceded by an `AskUserQuestion` scoping call unless the user already provided count + filters + enrichment preferences explicitly.**
 
@@ -120,8 +159,8 @@ Step 2  ->  Read the matching reference doc in `references/` for workflow guidan
 Step 2.5 ->  For any fetch/enrich with page_size > 50 OR total target > 100 records, you MUST call AskUserQuestion to confirm scope before executing Step 3.
 Step 3  ->  npx @vibeprospecting/vpai@latest <tool> --all-parameters   Mandatory before the first call to every tool
 Step 4  ->  npx @vibeprospecting/vpai@latest <tool> --args '<json>'    Execute the tool with JSON matching the schema
-Optional ->  add --save-csv to fetch-entities / match / enrich calls when you want the result rows written as CSV
-Mode rule ->  in research mode, prefer `size: 5` when supported; in export mode, always use `--save-csv` for fetch-entities / match / enrich
+Optional ->  add --save-csv to fetch-entities / match calls when you want the result rows written as CSV
+Mode rule ->  in research mode, prefer `size: 5` when supported; in export mode, use `--save-csv` for fetch-entities / match and capture raw JSON for cowork enrich calls
 ```
 
 Never make the first call to a tool without doing steps 2 and 3 for that tool first. Skipping them can cause silent empty results, malformed payloads, or wrong workflow choices.
@@ -134,24 +173,27 @@ Never make the first call to a tool without doing steps 2 and 3 for that tool fi
 | `--all-parameters` | Print input and output JSON schemas (do not call the tool) |
 | `--args '<json>'` | Tool arguments as a JSON string |
 | `--json` | With `--all-parameters`, output schemas as compact JSON |
-| `--save-csv` | For fetch-entities / match / enrich calls, extract the returned rows and write CSV output. Fetch and match return one CSV file; enrich may return one CSV per enrichment table. |
+| `--save-csv` | Extract supported row-shaped results and write CSV output. Use for fetch-entities and match by default. Cowork enrich responses are usually stringified and should be captured as raw JSON instead. |
 
 ---
 
 ## Output and Pagination
 
 - All tool responses are JSON payloads. Read fields from the JSON exactly as returned.
-- For fetch-entities / match / enrich calls, adding `--save-csv` writes the returned rows to CSV using the appropriate response-derived schema.
+- For fetch-entities and match calls, adding `--save-csv` writes the returned rows to CSV using the response-derived schema.
 - In research mode, keep responses intentionally small and prefer `size: 5` when the tool supports it.
-- In export mode, treat saved CSV files as the primary artifact for fetch-entities / match / enrich results.
+- In export mode, treat saved CSV files as the primary artifact for fetch-entities / match results, and raw JSON files as the primary artifact for cowork enrich results.
 - Fetch and match return a single CSV result object with `file_path`, `columns`, `row_count`, and `source`.
-- Enrich responses may contain multiple sibling enrichment tables. In that case `--save-csv` returns `files`, with one CSV entry per enrichment key.
-- The CSV columns come from the returned row shape: fetch-entities uses `data[]`; match uses `matched_businesses[]` or `matched_prospects[]`; enrich uses each sibling `{enrichment}.data[]` array.
+- `--save-csv` responses preserve pagination metadata when available: `next_cursor` is passed through, and if no cursor exists but the tool returns a `page` object, that `page` object is included in the CSV metadata response.
+- Non-cowork array-shaped enrich responses can still produce multiple sibling enrichment tables. In that case `--save-csv` returns `files`, with one CSV entry per enrichment key.
+- The CSV columns come from the returned row shape: fetch-entities uses `data[]`; match uses `matched_businesses[]` or `matched_prospects[]`; array-shaped enrich responses use each sibling `{enrichment}.data[]` array.
 - Do not paste large raw result payloads into the chat context if you can avoid it.
 - Prefer saving substantial results to files and working from those files so context stays focused and reusable.
+- Prefer this capture pattern when you need to inspect raw JSON without pasting it into chat: `... > /tmp/resp.json 2>&1`, then extract only the needed fields with `python3 -c 'import json; ...'`.
 - In responses, summarize the relevant findings and reference the saved file instead of dumping the full payload.
 - If a result set can exceed 50 items, prefer export mode and use pagination instead of assuming the first response is complete.
 - Pagination can work in two ways: page-number pagination or cursor pagination.
+- Prospect fetches typically return `next_cursor` via `page.next_cursor`. Business fetches may return a `page` object without a reusable cursor. Pass any returned cursor token verbatim.
 - For page-number pagination, set `page_size` and advance `page` until you have enough results or the response stops returning new items.
 - For cursor pagination, send the first request with `"next_cursor": null`, then pass the returned `next_cursor` value into the next request.
 - Keep every other filter and request option the same when advancing `next_cursor`; only the cursor value should change between pages.
@@ -162,12 +204,12 @@ Never make the first call to a tool without doing steps 2 and 3 for that tool fi
 - Example page-number pattern: page 1 with `page_size: 50`, then page 2, page 3, and so on.
 
 ```bash
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"business","filters":{"country_code":{"values":["US"]}},"page_size":50,"page":1}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"business","filters":{"country_code":{"values":["US"]}},"page_size":50,"page":2}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"country_code":{"values":["US"]}},"page_size":50,"page":1}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"country_code":{"values":["US"]}},"page_size":50,"page":2}'
 
 # Cursor pagination
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"business","filters":{"country_code":{"values":["US"]}},"page_size":50,"next_cursor":null}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"business","filters":{"country_code":{"values":["US"]}},"page_size":50,"next_cursor":"<next_cursor_from_previous_response>"}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"country_code":{"values":["US"]}},"page_size":50,"next_cursor":null}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"country_code":{"values":["US"]}},"page_size":50,"next_cursor":"<next_cursor_from_previous_response>"}'
 ```
 
 ---
@@ -196,6 +238,22 @@ In the examples below, replace **`SESSION_ID`** with the `session_id` string fro
 ### Authenticate then run a workflow
 
 Run **Step 0** from **Auth** first, then continue below.
+
+### Clean + enrich + find leaders at qualifying companies
+
+```text
+1. match-prospects(names/emails/linkedins)             -> prospect_ids
+2. enrich-prospects(profiles)                          -> current company per prospect
+3. match-business(distinct company names)              -> business_ids
+4. enrich-business(firmographics)                      -> revenue / size / geography filter
+5. enrich-business(challenges, strategic-insights)     -> pain points
+6. fetch-entities(prospects, business_id in [...],
+   job_level=[c-suite,vice president],
+   job_department=[engineering])                       -> leaders
+7. enrich-prospects(contacts) on the selected leaders  -> emails / phones
+```
+
+Use this as a fill-in-the-values template for company qualification plus leadership targeting workflows.
 
 ### "Tell me everything about Stripe"
 ```bash
