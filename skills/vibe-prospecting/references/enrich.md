@@ -8,6 +8,32 @@ Cowork enrich responses return stringified payloads under `enrichment_results`. 
 
 Before any `--save-csv` call, set `TMPDIR` to a writable sandbox path, for example `TMPDIR=/sessions/<id>/tmp-vpai`, then `mkdir -p "$TMPDIR"`.
 
+## Call Schemas
+
+### `enrich-business` args
+
+```json
+{
+  "session_id": "optional-session-id",
+  "business_ids": ["biz_abc123"],
+  "enrichments": ["firmographics", "technographics"],
+  "parameters": {
+    "date": "2024-01-01T00:00",
+    "keywords": ["AI", "machine learning"]
+  }
+}
+```
+
+### `enrich-prospects` args
+
+```json
+{
+  "session_id": "optional-session-id",
+  "prospect_ids": ["pro_xyz789"],
+  "enrichments": ["profiles", "contacts"]
+}
+```
+
 ## `enrich-business`
 
 Requires business IDs from `match-business` or `fetch-entities` with `"entity_type":"businesses"`. Runs all requested enrichments in parallel.
@@ -53,8 +79,8 @@ Requires prospect IDs from `match-prospects` or `fetch-entities` with `"entity_t
 Hard limit: `enrich-prospects` accepts at most 50 `prospect_ids` per call, even if a schema snapshot appears to allow 100. Batch prospect enrichment in chunks of 50 or less.
 
 ```bash
-# Full profile
-npx @vibeprospecting/vpai@latest enrich-prospects --args '{"session_id":"session_from_match_or_fetch","prospect_ids":["pro_xyz789"],"enrichments":["profiles","contacts","linkedin-posts"]}' --tool-reasoning 'Find people details and contact data for the requested prospects'
+# Full profile with contact details
+npx @vibeprospecting/vpai@latest enrich-prospects --args '{"session_id":"session_from_match_or_fetch","prospect_ids":["pro_xyz789"],"enrichments":["profiles","contacts"]}' --tool-reasoning 'Find people details and contact data for the requested prospects'
 
 # Just contact details for multiple people
 npx @vibeprospecting/vpai@latest enrich-prospects --args '{"session_id":"session_from_match_or_fetch","prospect_ids":["pro_xyz789","pro_abc123"],"enrichments":["contacts"]}' --tool-reasoning 'Find people details and contact data for the requested prospects'

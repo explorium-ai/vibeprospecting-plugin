@@ -2,7 +2,7 @@
 
 Use this file as the first stop for fixed enum-style filters that do not require autocomplete.
 
-If a value is missing here, verify the live schema with `--all-parameters --json` before executing the tool.
+If a value is missing here or the tool rejects the payload, verify the live schema with `--all-parameters --json`.
 
 ## Common Fixed Enums
 
@@ -25,6 +25,18 @@ Values:
 - `10001+`
 
 Related output field: `number_of_employees_range`
+
+## Company Age
+
+Filter key: `company_age`
+
+Values:
+
+- `0-3`
+- `3-6`
+- `6-10`
+- `10-20`
+- `20+`
 
 ## Revenue
 

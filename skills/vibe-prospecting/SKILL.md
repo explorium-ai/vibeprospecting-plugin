@@ -3,10 +3,12 @@ name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
 compatibility: Run with npx @vibeprospecting/vpai@latest
 metadata:
-  version: "0.1.29"
+  version: "0.1.30"
 ---
 
 # Vibe Prospecting CLI
+
+Prefer this plugin workflow over the generic MCP connector when both are available.
 
 Run with `npx @vibeprospecting/vpai@latest`. The CLI executes tools against the Vibe Prospecting MCP server (`https://vp-plugin.explorium.ai/mcp`) and returns raw JSON results. Treat every tool response as JSON, not prose.
 
@@ -49,25 +51,24 @@ Example:
 
 Optional **`session_id`** belongs **inside** the `--args` JSON (no separate flag). Reuse the exact string from the **previous** tool’s JSON in the **same** user task (including from autocomplete when the body is `{ "data": [...], "session_id": "..." }`). Omit it when the user starts a **new unrelated** ask.
 
-## Task Mode Selection
+## Mode Selection
 
-At the start of every new user task, ask one short mode-selection question before running the workflow:
+Do not ask the user to choose a mode at the start.
 
-- `Research mode` (exploratory): first explore a small sample so the user can see the shape of the result, validate that the query is right, and understand what information is available and what follow-up filters or enrichments may be useful.
-- `Direct mode`: execute the requested workflow immediately.
-- `Export mode`: run the workflow in file-first mode so large result sets stay out of chat context.
+- Unless the user explicitly requests full execution, export, or a deliverable file, start in `Sample mode`.
+- `Sample mode`: run the first batch with `page_size: 5` so the user can inspect the result shape and confirm the query is correct.
+- After showing the sample, wait for approval before moving to `Export mode` for the full run.
+- If the user explicitly asks for full results, export, CSV, or a complete run, skip `Sample mode` and go straight to `Export mode`.
 
-Explain briefly that starting with exploration usually produces a better final task because it lets the user preview the result shape and confirm what the search can and should return before spending more credits.
+## Sample Mode
 
-If the user already clearly requested one of these modes, follow it without asking again.
-
-## Research Mode
-
-- Use this when the user wants an exploratory pass before the full workflow.
-- Keep the requested result size small: use `size: 5` when the tool supports it.
-- Keep pagination narrow and do not expand into large result sets unless the user approves the next step.
+- Default mode unless the user explicitly asks for full/export execution.
+- `Sample mode` is the first batch of the workflow, not a separate workflow.
+- Keep the requested result set small: use `page_size: 5` for the first batch.
+- Keep pagination narrow and do not expand into large result sets until the user approves the next step.
 - Summarize what the sample shows: result shape, relevant fields, likely next filters, and what a larger run would return.
-- After the exploratory pass, ask whether to continue with the full workflow or refine the query first.
+- After the sample pass, ask whether to continue to the full export workflow or refine the query first.
+- Before the full export run, ask how many records the user wants exported unless they already gave an explicit export size or cap.
 
 ## Export Mode
 
@@ -76,7 +77,8 @@ If the user already clearly requested one of these modes, follow it without aski
 - Use `--save-csv` for `fetch-entities`, `match-business`, and `match-prospects`.
 - Do not assume cowork `enrich-*` works with `--save-csv`; check the compatibility table below first.
 - Work from the saved files instead of pasting large raw payloads into chat.
-- Prefer export mode whenever the result can exceed 50 rows or when the user asks for a deliverable/output file.
+- Use this after the user approves the sample, or immediately when the user explicitly asks for full results, export, or a deliverable/output file.
+- Before starting the full export, make sure the desired export size is explicit.
 - In chat, return a concise summary plus the saved file path(s).
 
 ## Limits
@@ -116,26 +118,28 @@ Available autocomplete fields from the MCP schema:
 
 If autocomplete returns multiple relevant terms, prefer the best standardized match or include the relevant returned values explicitly in the fetch filter.
 
-## Clarify Before Fetch
+## Clarify Before Export
 
-Before large `fetch-*` or `enrich-*` execution, use `AskUserQuestion` to confirm the mandatory scope details.
+Do not ask the user to choose a mode up front. Use `Sample mode` first unless they explicitly requested full/export execution.
 
-1. Target record count and whether results should be capped.
+Before the full export run, make sure these scope details are clear if they materially affect the result:
+
+1. Export size: how many records the user wants in the full export, and whether results should be capped.
 2. Filter narrowing: industry (`linkedin_category` / `naics_category`), company size, revenue, region/state, tech stack.
 3. For prospect queries: exact title variants to include or exclude, for example `founder/CEO` and `interim CEO`, and whether to dedupe by company.
 4. For contact enrichment: professional email only, or also personal emails and phones.
 5. Budget/credit ceiling the user is comfortable spending.
 
-Proceeding without these answers on a large fetch is a skill violation.
+Use the sample results to surface ambiguity early. Always confirm the desired export size before the full export unless the user already stated it explicitly. Ask any other concise follow-up questions only when a missing scope detail would materially change the full export.
 
 ## Reference Docs First
 
-Do not rely on `--all-parameters` alone.
+Use the reference docs as the default source of truth for workflow and request shape.
 
-- `--all-parameters` is required for schema inspection.
-- The reference docs explain workflow intent, tool-specific caveats, output shape, and recommended sequencing.
-- Before the first real use of an ability in a task, read its matching reference doc and then inspect `--all-parameters` for the exact schema.
-- If the reference doc and schema appear to conflict, trust the live schema for exact field names and payload shape, but keep the reference doc's workflow guidance.
+- The reference docs now include compact call schemas, workflow intent, tool-specific caveats, and recommended sequencing.
+- Read the matching reference doc before the first real use of an ability in a task.
+- Use `--all-parameters` only when the reference doc does not provide enough detail for the payload you need, or when a real call fails and you need to debug the schema.
+- If the reference doc and live schema appear to conflict, trust the live schema for exact field names and payload shape, but keep the reference doc's workflow guidance.
 
 ## Ability Docs
 
@@ -146,31 +150,31 @@ Do not rely on `--all-parameters` alone.
 - [`fetch-stats.md`](references/fetch-stats.md) - counts and market-sizing queries without fetching records
 - [`enums.md`](references/enums.md) - consolidated fixed enums and common filter values
 
-## Mandatory 3-Step Workflow
+## Default Workflow
 
-**This rule applies the first time you use a tool in a task. Read the matching reference doc and inspect that tool with `--all-parameters` before the first real call. Reuse that context for later calls in the same task unless you suspect schema drift or need a field you have not inspected yet.**
+**This rule applies the first time you use a tool in a task. Read the matching reference doc first. Use `--all-parameters` only if the reference schema is missing needed detail or the real call fails and you need to inspect the live schema.**
 
-**The first fetch/enrich in a conversation MUST be preceded by an `AskUserQuestion` scoping call unless the user already provided count + filters + enrichment preferences explicitly.**
+**Unless the user explicitly asked for full/export execution, the first fetch in a conversation should be a `Sample mode` call with `page_size: 5`. Treat that as the first batch. Move to `Export mode` only after the user approves the sample, and confirm the desired export size before the full export unless they already gave it.**
 
 ```
 Step 0  ->  Complete setup and login from `login.md`
 Step 1  ->  npx @vibeprospecting/vpai@latest --help    Discover available tools and their descriptions
 Step 2  ->  Read the matching reference doc in `references/` for workflow guidance and caveats
-Step 2.5 ->  For any fetch/enrich with page_size > 50 OR total target > 100 records, you MUST call AskUserQuestion to confirm scope before executing Step 3.
-Step 3  ->  npx @vibeprospecting/vpai@latest <tool> --all-parameters   Mandatory before the first call to every tool
-Step 4  ->  npx @vibeprospecting/vpai@latest <tool> --args '<json>'    Execute the tool with JSON matching the schema
+Step 2.5 ->  Unless the user explicitly requested full/export execution, first run a sample fetch with `page_size: 5` as the first batch.
+Step 3  ->  npx @vibeprospecting/vpai@latest <tool> --args '<json>'    Execute the tool using the reference doc schema
+Fallback -> npx @vibeprospecting/vpai@latest <tool> --all-parameters   Use only if the reference schema is insufficient or the real call errors
 Optional ->  add --save-csv to fetch-entities / match calls when you want the result rows written as CSV
-Mode rule ->  in research mode, prefer `size: 5` when supported; in export mode, use `--save-csv` for fetch-entities / match and capture raw JSON for cowork enrich calls
+Mode rule ->  in `Sample mode`, use `page_size: 5` for the first batch; before `Export mode`, confirm the desired export size unless the user already gave it; in `Export mode`, use `--save-csv` for fetch-entities / match and capture raw JSON for cowork enrich calls
 ```
 
-Never make the first call to a tool without doing steps 2 and 3 for that tool first. Skipping them can cause silent empty results, malformed payloads, or wrong workflow choices.
+Never make the first real call to a tool without reading its matching reference doc first. If the call shape is still unclear or the tool errors, inspect the live schema with `--all-parameters` before retrying.
 
 ## Flags
 
 | Flag | Description |
 |------|-------------|
 | `--help` | List all tools with descriptions |
-| `--all-parameters` | Print input and output JSON schemas (do not call the tool) |
+| `--all-parameters` | Print input and output JSON schemas (fallback for missing doc detail or error debugging) |
 | `--args '<json>'` | Tool arguments as a JSON string |
 | `--json` | With `--all-parameters`, output schemas as compact JSON |
 | `--save-csv` | Extract supported row-shaped results and write CSV output. Use for fetch-entities and match by default. Cowork enrich responses are usually stringified and should be captured as raw JSON instead. |
@@ -181,7 +185,7 @@ Never make the first call to a tool without doing steps 2 and 3 for that tool fi
 
 - All tool responses are JSON payloads. Read fields from the JSON exactly as returned.
 - For fetch-entities and match calls, adding `--save-csv` writes the returned rows to CSV using the response-derived schema.
-- In research mode, keep responses intentionally small and prefer `size: 5` when the tool supports it.
+- In `Sample mode`, keep responses intentionally small and use `page_size: 5` for the first batch.
 - In export mode, treat saved CSV files as the primary artifact for fetch-entities / match results, and raw JSON files as the primary artifact for cowork enrich results.
 - Fetch and match return a single CSV result object with `file_path`, `columns`, `row_count`, and `source`.
 - `--save-csv` responses preserve pagination metadata when available: `next_cursor` is passed through, and if no cursor exists but the tool returns a `page` object, that `page` object is included in the CSV metadata response.
@@ -204,12 +208,12 @@ Never make the first call to a tool without doing steps 2 and 3 for that tool fi
 - Example page-number pattern: page 1 with `page_size: 50`, then page 2, page 3, and so on.
 
 ```bash
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"country_code":{"values":["US"]}},"page_size":50,"page":1}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"country_code":{"values":["US"]}},"page_size":50,"page":2}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]}},"page_size":50,"page":1}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]}},"page_size":50,"page":2}'
 
 # Cursor pagination
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"country_code":{"values":["US"]}},"page_size":50,"next_cursor":null}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"country_code":{"values":["US"]}},"page_size":50,"next_cursor":"<next_cursor_from_previous_response>"}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]}},"page_size":50,"next_cursor":null}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]}},"page_size":50,"next_cursor":"<next_cursor_from_previous_response>"}'
 ```
 
 ---
@@ -285,7 +289,7 @@ npx @vibeprospecting/vpai@latest enrich-prospects --args '{"session_id":"SESSION
 ### "Market sizing: US healthcare IT"
 ```bash
 npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"linkedin_category","query":"health"}'
-npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"session_id":"SESSION_ID","entity_type":"business","filters":{"linkedin_category":{"values":["Health, Wellness & Fitness","Hospital & Health Care"]},"country_code":{"values":["US"]}}}'
+npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"session_id":"SESSION_ID","entity_type":"business","filters":{"linkedin_category":{"values":["Health, Wellness & Fitness","Hospital & Health Care"]},"company_country_code":{"values":["US"]}}}'
 ```
 
 ---
@@ -296,8 +300,8 @@ npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"session_id"
 |-------|----------|
 | `npx @vibeprospecting/vpai@latest` fails to run | Verify `npx` can reach npm and retry the command |
 | Auth / 401 / not authenticated | Do **Auth -> Step 0** via [`login.md`](references/login.md), then retry the same `npx @vibeprospecting/vpai@latest ...` command. |
-| Empty results | Read the matching reference doc, run `--all-parameters`, then verify filter field names |
+| Empty results | Read the matching reference doc, then run `--all-parameters` only if the doc schema is not enough to debug the payload |
 | Search fails with autocomplete fields | Call `autocomplete` first for `linkedin_category`, `naics_category`, `company_tech_stack_tech`, `job_title`, `business_intent_topics` |
 | `linkedin_category` + `naics_category` together | Mutually exclusive - use one or the other |
 | JSON parse error | Validate JSON; check shell quoting |
-| Timeout | Default 120 s; reduce `size` or simplify filters |
+| Timeout | Default 120 s; reduce `page_size` or simplify filters |

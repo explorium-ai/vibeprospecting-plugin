@@ -11,6 +11,38 @@ Limits:
 - `match-business`: up to 50 rows per call
 - `match-prospects`: up to 40 rows per call
 
+## Call Schemas
+
+### `match-business` args
+
+```json
+{
+  "session_id": "optional-session-id",
+  "businesses_to_match": [
+    {
+      "name": "optional company name",
+      "domain": "optional domain"
+    }
+  ]
+}
+```
+
+### `match-prospects` args
+
+```json
+{
+  "session_id": "optional-session-id",
+  "prospects_to_match": [
+    {
+      "email": "optional work email",
+      "linkedin": "optional LinkedIn URL",
+      "full_name": "optional full name",
+      "company_name": "optional company name"
+    }
+  ]
+}
+```
+
 ## `match-business`
 
 Returns business IDs required by `enrich-business` and `fetch-businesses-events`. Not needed if you already ran `fetch-entities` with `"entity_type":"businesses"` because those results include IDs.

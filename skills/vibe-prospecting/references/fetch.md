@@ -21,6 +21,61 @@ python3 -c 'import json; d=json.load(open("/tmp/resp.json")); print(d.get("page"
 
 If you use `--save-csv`, the CSV metadata response also preserves pagination metadata: it passes through `next_cursor` when present, or `page` when the tool paginates without a cursor.
 
+## Call Schemas
+
+### `fetch-entities` args
+
+```json
+{
+  "session_id": "optional-session-id",
+  "entity_type": "businesses | prospects",
+  "filters": {
+    "<filter_name>": {
+      "values": ["value1", "value2"],
+      "negate": false
+    },
+    "<range_filter>": {
+      "gte": 0,
+      "lte": 10
+    },
+    "<boolean_filter>": true
+  },
+  "page_size": 5,
+  "page": 1,
+  "next_cursor": null
+}
+```
+
+### `fetch-businesses-events` args
+
+```json
+{
+  "session_id": "optional-session-id",
+  "business_ids": ["biz_abc123"],
+  "event_types": ["new_funding_round"],
+  "timestamp_from": "2024-01-01"
+}
+```
+
+### `fetch-prospects-events` args
+
+```json
+{
+  "session_id": "optional-session-id",
+  "prospect_ids": ["pro_xyz789"],
+  "event_types": ["new_job"],
+  "timestamp_from": "2024-07-01"
+}
+```
+
+### `web-search` args
+
+```json
+{
+  "query": "Acme Corp Series B funding 2024"
+}
+```
+
 ## `fetch-entities` for businesses
 
 ```bash
@@ -28,7 +83,7 @@ If you use `--save-csv`, the CSV metadata response also preserves pagination met
 npx @vibeprospecting/vpai@latest fetch-entities --args '{
   "entity_type": "businesses",
   "filters": {
-    "country_code": {"values": ["US"]},
+    "company_country_code": {"values": ["US"]},
     "company_size": {"values": ["51-200"]},
     "linkedin_category": {"values": ["Software Development"]}
   }
@@ -39,7 +94,7 @@ npx @vibeprospecting/vpai@latest fetch-entities --args '{
   "entity_type": "businesses",
   "filters": {
     "company_tech_stack_tech": {"values": ["Salesforce"]},
-    "country_code": {"values": ["GB"], "negate": true}
+    "company_country_code": {"values": ["GB"], "negate": true}
   }
 }'
 
@@ -47,7 +102,7 @@ npx @vibeprospecting/vpai@latest fetch-entities --args '{
 npx @vibeprospecting/vpai@latest fetch-entities --args '{
   "entity_type": "businesses",
   "filters": {
-    "country_code": {"values": ["US"]},
+    "company_country_code": {"values": ["US"]},
     "company_age": {"values": ["3-6"]},
     "is_public_company": false,
     "events": {"values": ["new_funding_round"], "last_occurrence": 60}
@@ -58,7 +113,7 @@ npx @vibeprospecting/vpai@latest fetch-entities --args '{
 npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"business_intent_topics":{"topics":["HR:HR Software"]}}}'
 
 # Paginate results
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"country_code":{"values":["US"]}},"size":100,"page_size":10,"page":2}'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]}},"page_size":10,"page":2}'
 ```
 
 If you need more than 50 records, fetch multiple pages explicitly. Do not assume one call returns the full dataset.
@@ -73,8 +128,7 @@ npx @vibeprospecting/vpai@latest fetch-entities --args '{
   "entity_type": "prospects",
   "filters": {
     "job_title": {"values": ["chief executive officer"]},
-    "job_level": {"values": ["c-suite"]},
-    "company_country_code": {"values": ["US"]}
+    "job_level": {"values": ["c-suite"]}
   }
 }'
 ```
@@ -108,24 +162,22 @@ npx @vibeprospecting/vpai@latest fetch-businesses-events --args '{"business_ids"
 ## `fetch-entities` for prospects
 
 ```bash
-# C-suite engineering leaders at US mid-size companies
+# C-suite engineering leaders at mid-size companies
 npx @vibeprospecting/vpai@latest fetch-entities --args '{
   "entity_type": "prospects",
   "filters": {
     "job_level": {"values": ["c-suite"]},
     "job_department": {"values": ["engineering"]},
-    "company_country_code": {"values": ["US"]},
     "company_size": {"values": ["201-500"]}
   }
 }'
 
-# Sales directors at SaaS companies in UK
+# Sales directors at software companies
 npx @vibeprospecting/vpai@latest fetch-entities --args '{
   "entity_type": "prospects",
   "filters": {
     "job_level": {"values": ["director"]},
     "job_department": {"values": ["sales"]},
-    "company_country_code": {"values": ["GB"]},
     "linkedin_category": {"values": ["Software Development"]}
   }
 }'
