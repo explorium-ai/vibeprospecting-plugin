@@ -3,7 +3,7 @@ name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
 compatibility: Run with npx @vibeprospecting/vpai@latest
 metadata:
-  version: "0.1.31"
+  version: "0.1.32"
 ---
 
 # Vibe Prospecting CLI
@@ -73,7 +73,8 @@ Do not ask the user to choose a mode at the start.
 ## Export Mode
 
 - Use file-first output handling.
-- Before any `--save-csv` call, set `TMPDIR` to a writable sandbox path, for example `TMPDIR=/sessions/<id>/tmp-vpai`, then `mkdir -p "$TMPDIR"`.
+- Before any `--save-csv` call, set `TMPDIR` to a writable path, for example `TMPDIR=/sessions/<id>/tmp-vpai`, then `mkdir -p "$TMPDIR"`.
+- If the environment asks to approve file access often, use the **user's pre-selected workspace or output folder** for `TMPDIR` and for any files you write (one tree for the whole task) so you are not writing under unrelated system paths that trigger per-file prompts.
 - Use `--save-csv` for `fetch-entities`, `match-business`, and `match-prospects`.
 - Do not assume cowork `enrich-*` works with `--save-csv`; check the compatibility table below first.
 - Work from the saved files instead of pasting large raw payloads into chat.
@@ -193,7 +194,7 @@ Never make the first real call to a tool without reading its matching reference 
 - The CSV columns come from the returned row shape: fetch-entities uses `data[]`; match uses `matched_businesses[]` or `matched_prospects[]`; array-shaped enrich responses use each sibling `{enrichment}.data[]` array.
 - Do not paste large raw result payloads into the chat context if you can avoid it.
 - Prefer saving substantial results to files and working from those files so context stays focused and reusable.
-- Prefer this capture pattern when you need to inspect raw JSON without pasting it into chat: `... > /tmp/resp.json 2>&1`, then extract only the needed fields with `python3 -c 'import json; ...'`.
+- Prefer this capture pattern when you need to inspect raw JSON without pasting it into chat: redirect to a file under the same pre-selected folder as `TMPDIR` (or `/tmp/resp.json` only when that folder is acceptable), then extract only the needed fields with `python3 -c 'import json; ...'`.
 - In responses, summarize the relevant findings and reference the saved file instead of dumping the full payload.
 - If a result set can exceed 50 items, prefer export mode and use pagination instead of assuming the first response is complete.
 - Pagination can work in two ways: page-number pagination or cursor pagination.
