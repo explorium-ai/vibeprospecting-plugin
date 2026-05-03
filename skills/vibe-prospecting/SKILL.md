@@ -51,34 +51,53 @@ Example:
 
 Optional **`session_id`** belongs **inside** the `--args` JSON (no separate flag). Reuse the exact string from the **previous** tool’s JSON in the **same** user task (including from autocomplete when the body is `{ "data": [...], "session_id": "..." }`). Omit it when the user starts a **new unrelated** ask.
 
-## Mode Selection
+## Sample gate and approval (CRITICAL)
 
-Do not ask the user to choose a mode at the start.
+**CRITICAL: NEVER auto-export. ALWAYS run a sample first and wait for explicit user approval before the full run.** Wording like "CSV", "download", or "export N rows" still requires the gate.
 
-- Unless the user explicitly requests full execution, export, or a deliverable file, start in `Sample mode`.
-- `Sample mode`: run the first batch with `page_size: 5` so the user can inspect the result shape and confirm the query is correct.
-- After showing the sample, wait for approval before moving to `Export mode` for the full run.
-- If the user explicitly asks for full results, export, CSV, or a complete run, skip `Sample mode` and go straight to `Export mode`.
+The sample is the **full request on 5 entities**: fetch with `page_size: 5`, then run every `match-*`, `enrich-*`, and `fetch-*-events` step the user asked for on those 5. Show the fully enriched rows, ask to approve, then **stop the turn**. Run the same chain on the full set only after the user approves in a new message.
+
+### Standardized response format
+
+**Presentation**
+
+- Show the sample in a complete **left-join style** markdown table with **all available fields** that belong to those rows (include every useful column from the JSON when practical).
+
+**Export language (critical)**
+
+- **Do not** ask the user to export or imply they can get **the full dataset** when everything they asked for is already shown in chat (for example one prospect’s profile and contacts returned in full).
+- **Only** mention export when there is **more data than you displayed**: the preview is a subset of rows (`n` < `total`), or columns or enrichment the user still needs at scale, or the user explicitly asked for a download, CSV, or hub list.
+
+**Results Found**
+
+`[X] [entity type] from [Y] [companies/sources] [key qualifier]`
+
+**Sample Preview ([n] of [total]):**
+
+Markdown table with the sample rows (up to **5** rows for the sample gate; include key columns and other returned fields as appropriate).
+
+When offering export (more rows or bulk fields not fully shown above):
+
+**More data available:** Preview shows `[n]` of `[total]` `[entities]`. Ask the user to **confirm** before you run the full export (complete CSV, pagination, or hub list). Do not start that export work until they confirm.
+
+Do **not** include the **More data available** block when the user already has the full answer in the message.
 
 ## Sample Mode
 
-- Default mode unless the user explicitly asks for full/export execution.
-- `Sample mode` is the first batch of the workflow, not a separate workflow.
-- Keep the requested result set small: use `page_size: 5` for the first batch.
-- Keep pagination narrow and do not expand into large result sets until the user approves the next step.
-- Summarize what the sample shows: result shape, relevant fields, likely next filters, and what a larger run would return.
-- After the sample pass, ask whether to continue to the full export workflow or refine the query first.
-- Before the full export run, ask how many records the user wants exported unless they already gave an explicit export size or cap.
+- First batch of any list/export workflow (see **Sample gate**).
+- `page_size: 5` + every requested `match-*`, `enrich-*`, and `fetch-*-events` on those 5.
+- Show the fully enriched rows. Stop and wait for approval.
 
 ## Export Mode
 
+- Only enter Export Mode **after** the user has approved the sample in a follow-up message.
 - Use file-first output handling.
 - Before any `--save-csv` call, set `TMPDIR` to a writable path, for example `TMPDIR=/sessions/<id>/tmp-vpai`, then `mkdir -p "$TMPDIR"`.
 - If the environment asks to approve file access often, use the **user's pre-selected workspace or output folder** for `TMPDIR` and for any files you write (one tree for the whole task) so you are not writing under unrelated system paths that trigger per-file prompts.
 - Use `--save-csv` for `fetch-entities`, `match-business`, and `match-prospects`.
 - Do not assume cowork `enrich-*` works with `--save-csv`; check the compatibility table below first.
 - Work from the saved files instead of pasting large raw payloads into chat.
-- Use this after the user approves the sample, or immediately when the user explicitly asks for full results, export, or a deliverable/output file.
+- Use this only after the user approves the sample in a new message.
 - Before starting the full export, make sure the desired export size is explicit.
 - In chat, return a concise summary plus the saved file path(s).
 
@@ -121,7 +140,7 @@ If autocomplete returns multiple relevant terms, prefer the best standardized ma
 
 ## Clarify Before Export
 
-Do not ask the user to choose a mode up front. Use `Sample mode` first unless they explicitly requested full/export execution.
+Do not ask the user to choose a mode up front. Always use `Sample mode` first and wait for approval (see **Sample gate**).
 
 Before the full export run, make sure these scope details are clear if they materially affect the result:
 
@@ -129,9 +148,8 @@ Before the full export run, make sure these scope details are clear if they mate
 2. Filter narrowing: industry (`linkedin_category` / `naics_category`), company size, revenue, region/state, tech stack.
 3. For prospect queries: exact title variants to include or exclude, for example `founder/CEO` and `interim CEO`, and whether to dedupe by company.
 4. For contact enrichment: professional email only, or also personal emails and phones.
-5. Budget/credit ceiling the user is comfortable spending.
 
-Use the sample results to surface ambiguity early. Always confirm the desired export size before the full export unless the user already stated it explicitly. Ask any other concise follow-up questions only when a missing scope detail would materially change the full export.
+Use the sample results to surface ambiguity early. After approval, confirm the desired export size before the full export unless the user already stated it explicitly (a stated cap still requires the preview step first unless they waived preview).
 
 ## Reference Docs First
 
@@ -155,17 +173,17 @@ Use the reference docs as the default source of truth for workflow and request s
 
 **This rule applies the first time you use a tool in a task. Read the matching reference doc first. Use `--all-parameters` only if the reference schema is missing needed detail or the real call fails and you need to inspect the live schema.**
 
-**Unless the user explicitly asked for full/export execution, the first fetch in a conversation should be a `Sample mode` call with `page_size: 5`. Treat that as the first batch. Move to `Export mode` only after the user approves the sample, and confirm the desired export size before the full export unless they already gave it.**
+**ALWAYS run a sample with `page_size: 5` first, post the Sample Preview table, and wait for explicit user approval before the full run. NEVER auto-export, regardless of size, CSV, or download wording in the user's message.**
 
 ```
 Step 0  ->  Complete setup and login from `login.md`
 Step 1  ->  npx @vibeprospecting/vpai@latest --help    Discover available tools and their descriptions
 Step 2  ->  Read the matching reference doc in `references/` for workflow guidance and caveats
-Step 2.5 ->  Unless the user explicitly requested full/export execution, first run a sample fetch with `page_size: 5` as the first batch.
+Step 2.5 ->  Always run a sample fetch with `page_size: 5` as the first batch, show the table, and stop until the user approves.
 Step 3  ->  npx @vibeprospecting/vpai@latest <tool> --args '<json>'    Execute the tool using the reference doc schema
 Fallback -> npx @vibeprospecting/vpai@latest <tool> --all-parameters   Use only if the reference schema is insufficient or the real call errors
-Optional ->  add --save-csv to fetch-entities / match calls when you want the result rows written as CSV
-Mode rule ->  in `Sample mode`, use `page_size: 5` for the first batch; before `Export mode`, confirm the desired export size unless the user already gave it; in `Export mode`, use `--save-csv` for fetch-entities / match and capture raw JSON for cowork enrich calls
+Optional ->  add --save-csv to fetch-entities / match calls only after approval
+Mode rule ->  Sample mode = first batch with `page_size: 5`; Export mode = only after user approval; never run both in the same turn
 ```
 
 Never make the first real call to a tool without reading its matching reference doc first. If the call shape is still unclear or the tool errors, inspect the live schema with `--all-parameters` before retrying.
@@ -186,7 +204,7 @@ Never make the first real call to a tool without reading its matching reference 
 
 - All tool responses are JSON payloads. Read fields from the JSON exactly as returned.
 - For fetch-entities and match calls, adding `--save-csv` writes the returned rows to CSV using the response-derived schema.
-- In `Sample mode`, keep responses intentionally small and use `page_size: 5` for the first batch.
+- In `Sample mode`, keep responses intentionally small and use `page_size: 5` for the first batch. For that sample reply, show rows in chat using **Sample gate** / **Standardized response format** above; the rule to avoid pasting huge payloads applies to **export** pages and large JSON, not the 5-row approval preview.
 - In export mode, treat saved CSV files as the primary artifact for fetch-entities / match results, and raw JSON files as the primary artifact for cowork enrich results.
 - Fetch and match return a single CSV result object with `file_path`, `columns`, `row_count`, and `source`.
 - `--save-csv` responses preserve pagination metadata when available: `next_cursor` is passed through, and if no cursor exists but the tool returns a `page` object, that `page` object is included in the CSV metadata response.
