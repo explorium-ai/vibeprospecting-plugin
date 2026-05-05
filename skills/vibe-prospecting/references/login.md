@@ -95,16 +95,13 @@ npx @vibeprospecting/vpai@latest login
 #         Then: npx @vibeprospecting/vpai@latest login --poll
 ```
 
-**3B-2. Open the URL in your browser** and approve the request.
+**3B-2.** Tell the user to open the URL in their browser and approve the request. **Do not stop the turn or wait for an explicit "I approved" reply** — proceed straight to 3B-3.
 
-**3B-3. Complete login and retrieve the API key:**
+**3B-3. Poll until sign-in completes.**
 
-```bash
-npx @vibeprospecting/vpai@latest login --poll-show
-# Output includes the tenant API key — copy it
-```
+Immediately after printing the URL, keep running `npx @vibeprospecting/vpai@latest login --poll` in a loop until the user has approved in the browser and login succeeds (or the flow errors out). Do not ask the user each time whether to run another poll — just poll again after a short pause if a run did not finish sign-in. Cap total wait at about **2 minutes**; if it still has not completed, tell the user to approve at the URL or start over from 3B-1.
 
-If the CLI says you are already signed in, continue to `npx @vibeprospecting/vpai@latest login --poll-show` and then save the printed key.
+When you need the tenant API key on stdout for the steps below (e.g. to paste into the mounted `config.json`), run `npx @vibeprospecting/vpai@latest login --poll-show` once after sign-in has completed.
 
 **3B-4. ⚠️ Write the key to the mounted local config path first** — this is critical so future sessions skip the browser step:
 
@@ -180,9 +177,9 @@ npx @vibeprospecting/vpai@latest --help
 ```bash
 # Login via browser
 npx @vibeprospecting/vpai@latest login
-# → open printed URL in browser, approve
-npx @vibeprospecting/vpai@latest login --poll-show
-# → copy the printed API key
+# → tell the user to open the printed URL and approve.
+# → then loop `npx @vibeprospecting/vpai@latest login --poll` until sign-in completes (~2 min max); do not ask for approval between polls.
+# → if you need the key printed: `npx @vibeprospecting/vpai@latest login --poll-show` once after sign-in.
 
 # Write the key to the mounted local path first
 echo '{"api_key":"<key>"}' > /sessions/<session-id>/mnt/vpai/config.json
@@ -224,7 +221,7 @@ npx @vibeprospecting/vpai@latest config --api-key "<tenant-api-key>"
 | `npx @vibeprospecting/vpai@latest` fails to run | Verify `npx` can reach npm and retry |
 | `Not authenticated` error | Re-run Step 3 — sandbox config does not persist between sessions |
 | Can't find config.json | Try `request_cowork_directory` with `path: ~/.config/vpai`; if that fails, mount `~/.config` and create `/sessions/<session-id>/mnt/.config/vpai` |
-| Login URL flow (fallback) | `npx @vibeprospecting/vpai@latest login` → open URL in browser → `npx @vibeprospecting/vpai@latest login --poll-show` → write the printed key to the mounted local config path |
+| Login URL flow (fallback) | `npx @vibeprospecting/vpai@latest login` → user opens URL and approves → **loop** `npx @vibeprospecting/vpai@latest login --poll` until sign-in completes (no asking between polls; ~2 min cap) → `login --poll-show` once if you need the key printed → write the key to the mounted local config path |
 | Need to switch tenants/accounts | Run `npx @vibeprospecting/vpai@latest logout`, then do Path B again |
 
 ---
