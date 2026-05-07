@@ -35,6 +35,38 @@ npx @vibeprospecting/vpai@latest
 
 The underlying MCP server is part of the same product family as the open [Vibe Prospecting MCP](https://github.com/explorium-ai/vibeprospecting-mcp) project — use that repo if you want the MCP server or Gemini CLI extension directly.
 
+### Authenticate
+
+Before running any tool, sign in with your Explorium account. Authentication is OAuth-based — there's no API key to copy or manage manually.
+
+**First time — log in through the browser:**
+
+```bash
+npx @vibeprospecting/vpai@latest login
+# Open the printed URL, approve in your browser, then poll until sign-in completes:
+npx @vibeprospecting/vpai@latest login --poll
+```
+
+Behind the scenes, the CLI writes a key to `~/.config/vpai/config.json` on your local machine. **You only do this once** — later sessions reuse the saved key automatically and skip the browser step.
+
+**Running inside Claude Cowork or another sandbox:** the sandbox can't read your local `~/.config/vpai/` directly, so you need to mount it first via `request_cowork_directory` and rehydrate the CLI from the mounted path. See the full step-by-step in [`skills/vibe-prospecting/references/login.md`](https://github.com/explorium-ai/vibeprospecting-plugin/blob/main/skills/vibe-prospecting/references/login.md).
+
+**Verify:**
+
+```bash
+npx @vibeprospecting/vpai@latest --help
+```
+
+If the help output lists tools like `match-business` and `fetch-entities`, you're ready.
+
+**Switch accounts or sign out:**
+
+```bash
+npx @vibeprospecting/vpai@latest logout
+```
+
+Then re-run `login`.
+
 ### Run your first workflow
 
 > Find 50 B2B SaaS companies in the US with 200 to 1,000 employees. For each company, find the VP of Marketing or Head of Growth and return name, title, company, LinkedIn URL, email if available, and company domain.
@@ -246,6 +278,7 @@ Full parameter documentation is in [`skills/vibe-prospecting/SKILL.md`](https://
 | Need | Where to go |
 | --- | --- |
 | Install the plugin | [Getting started](#getting-started) |
+| Authenticate the CLI | [Authenticate](#authenticate) — full sandbox flow in [`login.md`](https://github.com/explorium-ai/vibeprospecting-plugin/blob/main/skills/vibe-prospecting/references/login.md) |
 | Understand supported tools | [Tool reference](#tool-reference) |
 | Browse use cases and prompts | [Use cases and example workflows](#use-cases-and-example-workflows) |
 | Use with Claude Cowork or Claude Code | [Claude Cowork and Claude Code](#using-vibe-prospecting-with-claude-cowork-and-claude-code) |
@@ -268,7 +301,7 @@ Full parameter documentation is in [`skills/vibe-prospecting/SKILL.md`](https://
 | Issue | Likely cause | Resolution |
 | --- | --- | --- |
 | Plugin not recognized in Claude Code | Installation not complete | Re-run `/plugin marketplace add explorium-ai/vibeprospecting-plugin` and `/plugin install vpai@vibeprospecting` |
-| Authentication error | Expired session or incorrect credentials | Re-open the `vibe-prospecting` skill and complete the login step |
+| Authentication error | Expired session, missing key, or sandbox can't reach `~/.config/vpai/` | Re-run the [Authenticate](#authenticate) steps; for sandbox sessions see [`login.md`](https://github.com/explorium-ai/vibeprospecting-plugin/blob/main/skills/vibe-prospecting/references/login.md) |
 | Empty results | Filters too narrow or no matches | Broaden ICP criteria or reduce required filters |
 | Low email match rate | Contacts found without verified work emails | Request enrichment with a confidence threshold; email availability varies |
 | Slow workflow | Large result sets or multi-step enrichment | Reduce batch size or break workflow into smaller steps |
