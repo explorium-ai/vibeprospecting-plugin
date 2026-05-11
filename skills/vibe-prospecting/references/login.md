@@ -1,235 +1,128 @@
-# vpai CLI — Login & Setup Guide
+# vpai CLI — Login & Setup
 
-This file documents the exact steps required to authenticate `npx @vibeprospecting/vpai@latest` in a Cowork sandbox session. Follow this before running any vpai tool.
+Authenticate `npx @vibeprospecting/vpai@latest` in a Cowork sandbox session. Run before any vpai tool.
 
 ## Fast Path
 
-Most sessions only need these three lines:
+Most sessions only need:
 
 ```bash
 mcp__cowork__request_cowork_directory path=~/.config/vpai
 API_KEY=$(python3 -c "import json;print(json.load(open('/sessions/<session-id>/mnt/vpai/config.json'))['api_key'])")
 npx @vibeprospecting/vpai@latest config --api-key "$API_KEY"
+npx @vibeprospecting/vpai@latest --help   # verify
 ```
 
-If that fails, continue with the full flow below.
+If the mount fails or `config.json` is missing, follow the full flow below.
 
----
+## Key facts
 
-## Step 1 — Use the CLI via npx
+- Durable auth lives at `~/.config/vpai/config.json` on the **local machine** (not in the sandbox).
+- The sandbox cannot reach it directly — mount via `request_cowork_directory`.
+- `~/.config/vpai/` is for `config.json` only. Never write exports, logs, or temp files there.
+- For CSV in restricted sandboxes, set a writable `TMPDIR`:
+  ```bash
+  export TMPDIR=/sessions/<session-id>/tmp-vpai
+  mkdir -p "$TMPDIR"
+  ```
 
-Do not install the CLI globally. Run the published package directly with `npx @vibeprospecting/vpai@latest` for every command.
+## Full Flow
 
-Use the full `npx @vibeprospecting/vpai@latest ...` command for every invocation in this session.
-
----
-
-## Step 2 — Mount the Local Config Directory
-
-The API key is stored on the **user's local machine** at `~/.config/vpai/config.json`. The sandbox cannot reach it directly.
-
-`~/.config/vpai/` is reserved for `config.json` only. Do not save exports, logs, temporary files, or any other artifacts there.
-
-Try mounting that directory first using the `request_cowork_directory` MCP tool:
+### 1. Mount the local config dir
 
 ```
 mcp__cowork__request_cowork_directory  path: ~/.config/vpai
 ```
 
-If that mount succeeds, the directory is available inside the sandbox at `/sessions/<session-id>/mnt/vpai/`.
+Available at `/sessions/<session-id>/mnt/vpai/`.
 
-If mounting `~/.config/vpai` fails, fall back to mounting the parent directory instead:
+If that mount fails, fall back to mounting the parent:
 
 ```
 mcp__cowork__request_cowork_directory  path: ~/.config
-```
-
-That mount is available at `/sessions/<session-id>/mnt/.config/`. Create the `vpai/` subdirectory inside it before continuing:
-
-```bash
 mkdir -p /sessions/<session-id>/mnt/.config/vpai
 ```
 
-Then check whether a key already exists:
+Available at `/sessions/<session-id>/mnt/.config/vpai/`.
+
+### 2. Check for an existing key
 
 ```bash
 cat /sessions/<session-id>/mnt/vpai/config.json
-# or, if you mounted ~/.config instead:
+# or, if ~/.config was mounted:
 cat /sessions/<session-id>/mnt/.config/vpai/config.json
 ```
 
----
-
-## Step 3 — Authenticate (choose the path that applies)
-
-Treat `~/.config/vpai/config.json` on the local host machine as the durable auth source. Never treat sandbox `~/.config/vpai/config.json` as durable auth state.
-
-Do not create or save any file under `~/.config/vpai/` other than `config.json`.
-
-### ✅ Path A — API key exists in config.json
-
-The file contains something like `{ "api_key": "abc123..." }`. Configure the CLI with it:
+### 3a. Path A — key exists
 
 ```bash
-API_KEY=$(python3 -c "import json; print(json.load(open('/sessions/<session-id>/mnt/vpai/config.json'))['api_key'])")
+API_KEY=$(python3 -c "import json;print(json.load(open('/sessions/<session-id>/mnt/vpai/config.json'))['api_key'])")
 npx @vibeprospecting/vpai@latest config --api-key "$API_KEY"
 ```
 
-If you mounted `~/.config` instead of `~/.config/vpai`, read from `/sessions/<session-id>/mnt/.config/vpai/config.json`.
-
-This is the default path for later sessions. Reuse the saved key instead of doing interactive login again.
-
-→ Skip to **Step 4**.
-
----
-
-### ❌ Path B — API key is missing or config.json does not exist
-
-The file is absent, empty, or does not contain an `api_key` field. You need to log in via browser.
-
-**3B-1. Start the login flow** — this prints a URL:
+### 3b. Path B — no key (first-time / post-logout)
 
 ```bash
 npx @vibeprospecting/vpai@latest login
-# Output: https://explorium.auth0.com/activate?user_code=XXXX-XXXX
-#         Then: npx @vibeprospecting/vpai@latest login --poll
+# Prints a browser URL (Auth0 / Explorium tenant) and optional user_code — use exactly what the CLI prints.
 ```
 
-**3B-2.** Tell the user to open the URL in their browser and approve the request. **Do not stop the turn or wait for an explicit "I approved" reply** — proceed straight to 3B-3.
-
-**3B-3. Poll until sign-in completes.**
-
-Immediately after printing the URL, keep running `npx @vibeprospecting/vpai@latest login --poll` in a loop until the user has approved in the browser and login succeeds (or the flow errors out). Do not ask the user each time whether to run another poll — just poll again after a short pause if a run did not finish sign-in. Cap total wait at about **2 minutes**; if it still has not completed, tell the user to approve at the URL or start over from 3B-1.
-
-When you need the tenant API key on stdout for the steps below (e.g. to paste into the mounted `config.json`), run `npx @vibeprospecting/vpai@latest login --poll-show` once after sign-in has completed.
-
-**3B-4. ⚠️ Write the key to the mounted local config path first** — this is critical so future sessions skip the browser step:
+Tell the user to open the URL and approve. Do **not** wait for an explicit "I approved" reply — proceed immediately to polling.
 
 ```bash
-# If ~/.config/vpai was mounted directly:
-mkdir -p /sessions/<session-id>/mnt/vpai
-echo '{"api_key":"<paste-key-here>"}' > /sessions/<session-id>/mnt/vpai/config.json
-
-# If ~/.config was mounted instead:
-mkdir -p /sessions/<session-id>/mnt/.config/vpai
-echo '{"api_key":"<paste-key-here>"}' > /sessions/<session-id>/mnt/.config/vpai/config.json
+npx @vibeprospecting/vpai@latest login --poll
 ```
 
-Do not write the key only to the sandbox's own `~/.config` path.
+Loop the `--poll` call until sign-in completes. Do not ask between polls. Cap total wait at ~2 minutes; if it doesn't complete, tell the user to approve at the URL.
 
-**3B-5. Save the same key on the local machine if you are completing the flow outside the mounted path:**
+If you need the key on stdout:
 
 ```bash
-# On your LOCAL machine (not in the sandbox), run:
-mkdir -p ~/.config/vpai
-echo '{"api_key":"<paste-key-here>"}' > ~/.config/vpai/config.json
+npx @vibeprospecting/vpai@latest login --poll-show
 ```
 
-**3B-6. Rehydrate the CLI from the saved key:**
+Persist the key to the mounted local path so future sessions skip the browser:
 
 ```bash
-API_KEY=$(python3 -c "import json; print(json.load(open('/sessions/<session-id>/mnt/vpai/config.json'))['api_key'])")
-npx @vibeprospecting/vpai@latest config --api-key "$API_KEY"
-```
-
-If you mounted `~/.config` instead of `~/.config/vpai`, read from `/sessions/<session-id>/mnt/.config/vpai/config.json`.
-
----
-
-## Step 4 — Verify
-
-```bash
-npx @vibeprospecting/vpai@latest --help
-```
-
-If the help output lists all tools (`match-business`, `fetch-entities`, etc.), the CLI is ready.
-
-Before the first `--save-csv` call in a sandbox, set `TMPDIR` to a writable path outside `~/.config/vpai/`:
-
-```bash
-export TMPDIR=/sessions/<session-id>/tmp-vpai
-mkdir -p "$TMPDIR"
-```
-
-The CLI defaults to `/tmp/vpai-csv-exports/` for CSV output. In restricted sandboxes that path can fail with `EACCES`.
-
----
-
-## Quick Reference
-
-### Path A (key already saved locally)
-
-```bash
-# Mount config dir via request_cowork_directory (path: ~/.config/vpai)
-# If that fails, mount ~/.config and create /sessions/<session-id>/mnt/.config/vpai
-# Then configure:
-API_KEY=$(python3 -c "import json; print(json.load(open('/sessions/<session-id>/mnt/vpai/config.json'))['api_key'])")
-# or, if ~/.config was mounted instead:
-# API_KEY=$(python3 -c "import json; print(json.load(open('/sessions/<session-id>/mnt/.config/vpai/config.json'))['api_key'])")
-npx @vibeprospecting/vpai@latest config --api-key "$API_KEY"
-
-# Verify
-npx @vibeprospecting/vpai@latest --help
-```
-
-### Path B (no key saved — first time or after logout)
-
-```bash
-# Login via browser
-npx @vibeprospecting/vpai@latest login
-# → tell the user to open the printed URL and approve.
-# → then loop `npx @vibeprospecting/vpai@latest login --poll` until sign-in completes (~2 min max); do not ask for approval between polls.
-# → if you need the key printed: `npx @vibeprospecting/vpai@latest login --poll-show` once after sign-in.
-
-# Write the key to the mounted local path first
 echo '{"api_key":"<key>"}' > /sessions/<session-id>/mnt/vpai/config.json
-# or, if ~/.config was mounted instead:
+# or, if ~/.config was mounted:
 echo '{"api_key":"<key>"}' > /sessions/<session-id>/mnt/.config/vpai/config.json
+```
 
-# Configure CLI from the saved key
-API_KEY=$(python3 -c "import json; print(json.load(open('/sessions/<session-id>/mnt/vpai/config.json'))['api_key'])")
-# or, if ~/.config was mounted instead:
-# API_KEY=$(python3 -c "import json; print(json.load(open('/sessions/<session-id>/mnt/.config/vpai/config.json'))['api_key'])")
+Then rehydrate the CLI:
+
+```bash
+API_KEY=$(python3 -c "import json;print(json.load(open('/sessions/<session-id>/mnt/vpai/config.json'))['api_key'])")
 npx @vibeprospecting/vpai@latest config --api-key "$API_KEY"
+```
 
-# Verify
+### 4. Verify
+
+```bash
 npx @vibeprospecting/vpai@latest --help
 ```
 
-### Sign out or switch account
+If tools list, the CLI is ready.
 
-```bash
-npx @vibeprospecting/vpai@latest logout
-```
-
-Then repeat Path B.
-
-### No browser fallback
-
-If you already have a tenant API key, configure it directly:
+## Direct API key (no browser)
 
 ```bash
 npx @vibeprospecting/vpai@latest config --api-key "<tenant-api-key>"
 ```
 
----
+## Sign out / switch account
+
+```bash
+npx @vibeprospecting/vpai@latest logout
+# then repeat Path B
+```
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| `npx @vibeprospecting/vpai@latest` fails to run | Verify `npx` can reach npm and retry |
-| `Not authenticated` error | Re-run Step 3 — sandbox config does not persist between sessions |
-| Can't find config.json | Try `request_cowork_directory` with `path: ~/.config/vpai`; if that fails, mount `~/.config` and create `/sessions/<session-id>/mnt/.config/vpai` |
-| Login URL flow (fallback) | `npx @vibeprospecting/vpai@latest login` → user opens URL and approves → **loop** `npx @vibeprospecting/vpai@latest login --poll` until sign-in completes (no asking between polls; ~2 min cap) → `login --poll-show` once if you need the key printed → write the key to the mounted local config path |
-| Need to switch tenants/accounts | Run `npx @vibeprospecting/vpai@latest logout`, then do Path B again |
-
----
-
-## Notes
-
-- Use `request_cowork_directory` only for the config mount step. Run all vpai operations via `npx @vibeprospecting/vpai@latest`.
-- The sandbox `~/.config/vpai/config.json` is **not durable** — it is recreated each session. Always read the key from the mounted local machine path.
-- The local machine's `~/.config/vpai/config.json` is the single source of truth for the API key.
-- No file other than `config.json` should ever be saved under `~/.config/vpai/`.
-- Do not use `~/.config/vpai/` for exports or temp files. Use `TMPDIR=/sessions/<session-id>/tmp-vpai` or another writable sandbox path instead.
+| `npx ... vpai` won't run | Verify `npx` can reach npm; retry |
+| `Not authenticated` | Re-run Step 3 — sandbox config doesn't persist between sessions |
+| Can't find `config.json` | Try `request_cowork_directory` with `path: ~/.config/vpai`; if it fails, mount `~/.config` and create `/sessions/<session-id>/mnt/.config/vpai` |
+| Need to switch tenants | `npx @vibeprospecting/vpai@latest logout`, then Path B |
+| `--csv` write fails (`EACCES`) | Set `TMPDIR=/sessions/<session-id>/tmp-vpai` |

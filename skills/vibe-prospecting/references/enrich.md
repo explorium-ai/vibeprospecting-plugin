@@ -1,122 +1,54 @@
 # Enrich
 
-Use enrich commands after you have business or prospect IDs.
+Run after you have business or prospect IDs.
 
-Optional **`session_id`** in `--args`: same value as the fetch or match that produced the IDs when still fulfilling one user request.
+Inspect args shape with: `npx @vibeprospecting/vpai@latest <tool> --all-parameters`.
 
-Cowork enrich responses return stringified payloads under `enrichment_results`. Capture raw JSON first. Do not assume `--save-csv` will work for cowork enrich calls.
+## Rules
 
-Before any `--save-csv` call, set `TMPDIR` to a writable sandbox path, for example `TMPDIR=/sessions/<id>/tmp-vpai`, then `mkdir -p "$TMPDIR"`.
-
-## Call Schemas
-
-### `enrich-business` args
-
-```json
-{
-  "session_id": "optional-session-id",
-  "business_ids": ["biz_abc123"],
-  "enrichments": ["firmographics", "technographics"],
-  "parameters": {
-    "date": "2024-01-01T00:00",
-    "keywords": ["AI", "machine learning"]
-  }
-}
-```
-
-### `enrich-prospects` args
-
-```json
-{
-  "session_id": "optional-session-id",
-  "prospect_ids": ["pro_xyz789"],
-  "enrichments": ["profiles", "contacts"]
-}
-```
+- Pass **`--session-id`** from the previous step. The CLI loads IDs from the session SQLite DB (`db_path` in prior output).
+- **`--table-name`** is **required** with **`--session-id`** for both enrich tools — pass the prior step's **`table_name`** exactly (no automatic table pick).
+- **`--csv`** only on the final step. Intermediate enrich steps that feed another tool emit JSON only.
+- Both tools batch large ID lists automatically (chunks of 50).
+- **`business_ids` / `prospect_ids`** do not need to appear in **`--args`** when IDs come from the session DB via **`--session-id`**.
 
 ## `enrich-business`
 
-Requires business IDs from `match-business` or `fetch-entities` with `"entity_type":"businesses"`. Runs all requested enrichments in parallel.
-
-Practical limit: batch `business_ids` in chunks of 50 or less.
-
 ```bash
 # Full company intelligence
-npx @vibeprospecting/vpai@latest enrich-business --args '{
-  "session_id": "session_from_match_or_fetch",
-  "business_ids": ["biz_abc123"],
-  "enrichments": ["firmographics","technographics","funding-and-acquisitions","workforce-trends","linkedin-posts"]
-}' --tool-reasoning 'Find company details and enrichment data for the requested businesses'
+npx @vibeprospecting/vpai@latest match-business --args '{"businesses_to_match":[{"name":"Stripe","domain":"stripe.com"}]}' --tool-reasoning '<user request>'
+npx @vibeprospecting/vpai@latest enrich-business --args '{"enrichments":["firmographics","technographics","funding-and-acquisitions","workforce-trends"]}' --session-id <session_id> --table-name <match_business_table_name> --tool-reasoning '<user request>'
 
-# Tech stack deep dive with keyword check
+# Tech stack + keyword check
 npx @vibeprospecting/vpai@latest enrich-business --args '{
-  "session_id": "session_from_match_or_fetch",
-  "business_ids": ["biz_abc123"],
   "enrichments": ["technographics","webstack","website-keywords"],
   "parameters": {"keywords": ["AI","machine learning","LLM"]}
-}' --tool-reasoning 'Find company details and enrichment data for the requested businesses'
+}' --session-id <session_id> --table-name <match_business_table_name> --tool-reasoning '<user request>'
 
-# Public company financials (requires date parameter)
+# Public company financials
 npx @vibeprospecting/vpai@latest enrich-business --args '{
-  "session_id": "session_from_match_or_fetch",
-  "business_ids": ["biz_abc123"],
   "enrichments": ["financial-metrics","competitive-landscape","strategic-insights"],
   "parameters": {"date": "2024-01-01T00:00"}
-}' --tool-reasoning 'Find company details and enrichment data for the requested businesses'
+}' --session-id <session_id> --table-name <match_business_table_name> --tool-reasoning '<user request>'
 ```
 
-Enrichment types:
-`firmographics`, `technographics`, `company-ratings`, `financial-metrics`, `funding-and-acquisitions`, `challenges`, `competitive-landscape`, `strategic-insights`, `workforce-trends`, `linkedin-posts`, `website-changes`, `website-keywords`, `webstack`, `company-hierarchies`
+Enrichment types: `firmographics`, `technographics`, `company-ratings`, `financial-metrics`, `funding-and-acquisitions`, `challenges`, `competitive-landscape`, `strategic-insights`, `workforce-trends`, `linkedin-posts`, `website-changes`, `website-keywords`, `webstack`, `company-hierarchies`.
 
-- `financial-metrics` requires `parameters.date`
-- `website-keywords` requires `parameters.keywords`
-- For finding specific people at a company, use `fetch-entities` with `"entity_type":"prospects"` and `business_id` instead of enrichment
+Caveats:
+- `financial-metrics` requires `parameters.date`.
+- `website-keywords` requires `parameters.keywords`.
+- For finding people at a company, use `fetch-entities` with `entity_type: prospects` + `business_id` filter (or businesses reference flow), not enrichment alone.
 
 ## `enrich-prospects`
 
-Requires prospect IDs from `match-prospects` or `fetch-entities` with `"entity_type":"prospects"`. Always combine all needed enrichments in one call.
-
-Hard limit: `enrich-prospects` accepts at most 50 `prospect_ids` per call, even if a schema snapshot appears to allow 100. Batch prospect enrichment in chunks of 50 or less.
+Combine all needed enrichments in one call.
 
 ```bash
-# Full profile with contact details
-npx @vibeprospecting/vpai@latest enrich-prospects --args '{"session_id":"session_from_match_or_fetch","prospect_ids":["pro_xyz789"],"enrichments":["profiles","contacts"]}' --tool-reasoning 'Find people details and contact data for the requested prospects'
-
-# Just contact details for multiple people
-npx @vibeprospecting/vpai@latest enrich-prospects --args '{"session_id":"session_from_match_or_fetch","prospect_ids":["pro_xyz789","pro_abc123"],"enrichments":["contacts"]}' --tool-reasoning 'Find people details and contact data for the requested prospects'
+# Profile + contacts
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"prospects","filters":{"job_level":{"values":["director"]},"job_department":{"values":["engineering"]}}}' --number-of-results 50 --tool-reasoning '<user request>'
+npx @vibeprospecting/vpai@latest enrich-prospects --args '{"enrichments":["profiles","contacts"]}' --session-id <session_id> --table-name <fetch_entities_table_name> --csv --tool-reasoning '<user request>'
 ```
 
-Enrichment types:
-`contacts` (emails, phones), `profiles` (name, role, work history, education), `linkedin-posts` (posts and engagement)
+Enrichment types: `contacts` (emails, phones), `profiles` (name, role, work history, education), `linkedin-posts`.
 
-## `enrich-* --save-csv` caveat
-
-Do not rely on `--save-csv` for cowork `enrich-business` or `enrich-prospects`. The CSV extractor expects row arrays, but cowork enrich payloads are stringified inside `enrichment_results`.
-
-- Capture raw JSON and inspect only the fields you need.
-- Reuse the same `session_id` across the match/fetch -> enrich chain when it belongs to one user request.
-
-## Parsing Responses
-
-Capture the raw response, then read the specific fields you need from `enrichment_results`.
-
-```bash
-npx @vibeprospecting/vpai@latest enrich-prospects --args '{"session_id":"session_from_match_or_fetch","prospect_ids":["pro_1"],"enrichments":["contacts"]}' --tool-reasoning 'Find people details and contact data for the requested prospects' > /tmp/enrich.json 2>&1
-python3 -c 'import json; d=json.load(open("/tmp/enrich.json")); print(d["enrichment_results"]["contacts"])'
-```
-
-## `challenges` Categories
-
-The `challenges` enrichment returns optional list-valued categories extracted from company 10-K filings. Common fields include:
-
-- `technological_disruption` - AI / technology-change risk
-- `company_data_security_breach` - cyber incident risk
-- `company_data_security_privacy` - privacy / regulatory risk
-- `company_information_systems` - IT / infrastructure risk
-- `company_reliance_on_third_parties` - vendor / partner dependency risk
-- `company_supply_chain` - supply chain risk
-- `company_competition` - competitive pressure
-- `company_customer_adoption` - adoption / demand risk
-- `company_market_saturation` - market saturation risk
-
-Use `link_to_filing_details` to trace each extracted category back to the source filing.
+When **`--csv`** is used on the final step, output includes **`csv_path`** alongside **`db_path`**, **`table_name`**, and **`session_id`**.

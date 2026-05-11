@@ -1,85 +1,21 @@
 # Fetch
 
-Use fetch commands to search for businesses or prospects, retrieve event details, or run general web search.
+Search for businesses or prospects, retrieve event details. In cowork mode, `fetch-entities` covers both — set `entity_type` to `businesses` or `prospects`.
 
-In cowork mode, use `fetch-entities` for both business and prospect search. Set `entity_type` to `businesses` or `prospects`.
+Inspect args shape with: `npx @vibeprospecting/vpai@latest <tool> --all-parameters`.
 
-Optional **`session_id`** in `--args`: reuse the value from the previous tool in the same user task when chaining after autocomplete, match, or an earlier fetch.
+## Rules
 
-Add `--save-csv` when you want the returned `data[]` rows written to a CSV file. The CLI will return JSON with the CSV path and column list.
-
-Before any `--save-csv` call, set `TMPDIR` to a writable sandbox path, for example `TMPDIR=/sessions/<id>/tmp-vpai`, then `mkdir -p "$TMPDIR"`.
-
-## File-First Pattern
-
-Do not paste raw JSON payloads into chat. Capture them to a file, then extract only the fields you need.
-
-```bash
-npx @vibeprospecting/vpai@latest fetch-entities --args '<json>' > /tmp/resp.json 2>&1
-python3 -c 'import json; d=json.load(open("/tmp/resp.json")); print(d.get("page", {}).get("next_cursor"))'
-```
-
-If you use `--save-csv`, the CSV metadata response also preserves pagination metadata: it passes through `next_cursor` when present, or `page` when the tool paginates without a cursor.
-
-## Call Schemas
-
-### `fetch-entities` args
-
-```json
-{
-  "session_id": "optional-session-id",
-  "entity_type": "businesses | prospects",
-  "filters": {
-    "<filter_name>": {
-      "values": ["value1", "value2"],
-      "negate": false
-    },
-    "<range_filter>": {
-      "gte": 0,
-      "lte": 10
-    },
-    "<boolean_filter>": true
-  },
-  "page_size": 5,
-  "page": 1,
-  "next_cursor": null
-}
-```
-
-### `fetch-businesses-events` args
-
-```json
-{
-  "session_id": "optional-session-id",
-  "business_ids": ["biz_abc123"],
-  "event_types": ["new_funding_round"],
-  "timestamp_from": "2024-01-01"
-}
-```
-
-### `fetch-prospects-events` args
-
-```json
-{
-  "session_id": "optional-session-id",
-  "prospect_ids": ["pro_xyz789"],
-  "event_types": ["new_job"],
-  "timestamp_from": "2024-07-01"
-}
-```
-
-### `web-search` args
-
-```json
-{
-  "query": "Acme Corp Series B funding 2024"
-}
-```
+- **`--session-id`** is a CLI flag (not inside `--args`). Pass the **`session_id`** from the previous tool JSON so the CLI reuses the same session SQLite DB (`db_path`).
+- **`--csv`** only on the **final step**. Intermediate steps emit JSON for chaining.
+- **Chain IDs:** There is no `--input-file`. After match/fetch, pass **`--session-id`**; the CLI reads `business_id` or `prospect_id` from tables under that session. Use **`--table-name`** with the prior step's **`table_name`** — **required** for **`fetch-businesses-events`** / **`fetch-prospects-events`** (and for **`enrich-*`**); optional for **`match-*`** when disambiguating multiple tables.
+- **Prospects at prior companies:** For `fetch-entities` with `entity_type: prospects` scoped to businesses from an earlier step, pass **`--session-id`**, **`--businesses-table-name`** (table containing those `business_id` rows), and optional **`--table-name`** only if you need to disambiguate.
+- **`--number-of-results N`** collects N rows across pages automatically. Omit for one raw page.
 
 ## `fetch-entities` for businesses
 
 ```bash
-# US software companies with 51-200 employees
+# US software, 51-200 employees
 npx @vibeprospecting/vpai@latest fetch-entities --args '{
   "entity_type": "businesses",
   "filters": {
@@ -87,18 +23,18 @@ npx @vibeprospecting/vpai@latest fetch-entities --args '{
     "company_size": {"values": ["51-200"]},
     "linkedin_category": {"values": ["Software Development"]}
   }
-}'
+}' --number-of-results 50 --tool-reasoning '<user request>'
 
-# Companies using Salesforce, excluding UK
+# Salesforce users, exclude UK
 npx @vibeprospecting/vpai@latest fetch-entities --args '{
   "entity_type": "businesses",
   "filters": {
     "company_tech_stack_tech": {"values": ["Salesforce"]},
     "company_country_code": {"values": ["GB"], "negate": true}
   }
-}'
+}' --number-of-results 50 --tool-reasoning '<user request>'
 
-# Fast-growing private US companies that recently raised funding
+# Recently funded private US, 3-6 yrs old
 npx @vibeprospecting/vpai@latest fetch-entities --args '{
   "entity_type": "businesses",
   "filters": {
@@ -107,21 +43,27 @@ npx @vibeprospecting/vpai@latest fetch-entities --args '{
     "is_public_company": false,
     "events": {"values": ["new_funding_round"], "last_occurrence": 60}
   }
-}'
-
-# Buying intent: companies looking to buy HR software
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"business_intent_topics":{"topics":["HR:HR Software"]}}}'
-
-# Paginate results
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]}},"page_size":10,"page":2}'
+}' --number-of-results 50 --tool-reasoning '<user request>'
 ```
 
-If you need more than 50 records, fetch multiple pages explicitly. Do not assume one call returns the full dataset.
+## `fetch-entities` for prospects
 
-## Job Filter Rules
+```bash
+# C-suite engineering at mid-size
+npx @vibeprospecting/vpai@latest fetch-entities --args '{
+  "entity_type": "prospects",
+  "filters": {
+    "job_level": {"values": ["c-suite"]},
+    "job_department": {"values": ["engineering"]},
+    "company_size": {"values": ["201-500"]}
+  }
+}' --number-of-results 50 --tool-reasoning '<user request>'
+```
 
-- `job_title` is substring-match, not exact-match.
-- For executive searches, always combine `job_title` with `job_level`, usually `c-suite`, to remove assistants, advisors, and office-of roles.
+## Job filter rules
+
+- `job_title` is **substring-match**, not exact-match.
+- For executive searches, always combine `job_title` with `job_level` (usually `c-suite`) to remove assistants, advisors, office-of roles.
 
 ```bash
 npx @vibeprospecting/vpai@latest fetch-entities --args '{
@@ -130,87 +72,51 @@ npx @vibeprospecting/vpai@latest fetch-entities --args '{
     "job_title": {"values": ["chief executive officer"]},
     "job_level": {"values": ["c-suite"]}
   }
-}'
+}' --number-of-results 20 --tool-reasoning '<user request>'
 ```
 
-## Company Size Pitfall
+## Company size pitfall
 
-`company_size` uses fixed buckets such as `1-10`, `11-50`, `51-200`, `201-500`, and higher. There is no exact `>100` cutoff. For requests like "over 100 employees", either:
+`company_size` uses fixed buckets (`1-10`, `11-50`, `51-200`, `201-500`, ...). No exact `>100` cutoff. For "over 100 employees", approximate with adjacent buckets (`51-200` + `201-500`) or enrich with `firmographics` for exact headcount.
 
-- approximate with adjacent buckets such as `51-200` and `201-500`, or
-- enrich matched businesses with firmographics if exact headcount matters.
+## Chaining business IDs into a prospect fetch
 
-## `fetch-businesses-events`
-
-Requires business IDs. Use after `fetch-entities` with `"entity_type":"businesses"` and an `events` filter to get full event records.
+Use **`--session-id`** from the match/fetch-business step, **`--businesses-table-name`** set to the table that holds **`business_id`** (from prior JSON **`table_name`**), and filters for the prospect query inside **`--args`**.
 
 ```bash
-# Funding events for the last year
-npx @vibeprospecting/vpai@latest fetch-businesses-events --args '{
-  "business_ids": ["biz_abc123"],
-  "event_types": ["new_funding_round"],
-  "timestamp_from": "2024-01-01"
-}'
-
-# Typical workflow:
-# 1. Find companies with recent events:
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"events":{"values":["new_funding_round"],"last_occurrence":60}}}'
-# 2. Get event details for those companies:
-npx @vibeprospecting/vpai@latest fetch-businesses-events --args '{"business_ids":["biz_abc123"],"event_types":["new_funding_round"],"timestamp_from":"2024-10-01"}'
+# 1. Resolve companies
+npx @vibeprospecting/vpai@latest match-business --args '{"businesses_to_match":[{"name":"Acme","domain":"acme.com"}]}' --tool-reasoning '<user request>'
+# 2. Leaders at those companies (reuse session; inject business IDs via businesses table)
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"prospects","filters":{"job_level":{"values":["director","vice president","c-suite"]}}}' --session-id <session_id> --businesses-table-name <match_business_table_name> --number-of-results 50 --tool-reasoning '<user request>'
+# 3. Enrich — pass session + fetch table name for prospect rows
+npx @vibeprospecting/vpai@latest enrich-prospects --args '{"enrichments":["contacts"]}' --session-id <session_id> --table-name <fetch_entities_table_name> --csv --tool-reasoning '<user request>'
 ```
 
-## `fetch-entities` for prospects
+## `fetch-businesses-events` / `fetch-prospects-events`
+
+Session-based bulk events for companies or prospects you already have in the session DB (from **`match-*`**, **`fetch-entities`**, etc.).
+
+### Rules
+
+- **`--session-id`** and **`--table-name`** are **required** together. **`--table-name`** must be the prior step's **`table_name`** whose rows include **`business_id`** (business events) or **`prospect_id`** (prospect events).
+- Do **not** put **`business_ids`** / **`prospect_ids`** inside **`--args`**. The CLI reads IDs from the SQLite table only; this avoids oversized requests and enables chunking.
+- The CLI calls MCP with **up to 20 IDs per request**, runs batches concurrently (bounded), appends Partner **`output_events`** rows, then **pivots** into one output row per source entity. Output columns are **`event_<event_type>`** (for example **`event_new_product`**, **`event_new_funding_round`**): each cell is a **JSON array** string for that type (newest-first, capped per type), or an **empty CSV cell** when there are no events for that type.
+- **`--csv`** on this step writes a flattened CSV **next to the session DB**; the JSON manifest includes **`csv_path`** and **`columns`**.
+- **Resume:** If a run times out, **re-run the same command** (same **`--session-id`**, **`--table-name`**, **`--args`**). Completed ID batches are skipped until the job finishes.
+
+Inspect allowed **`event_types`** and payload shape with **`fetch-businesses-events --all-parameters`** / **`fetch-prospects-events --all-parameters`**.
+
+### Examples
 
 ```bash
-# C-suite engineering leaders at mid-size companies
-npx @vibeprospecting/vpai@latest fetch-entities --args '{
-  "entity_type": "prospects",
-  "filters": {
-    "job_level": {"values": ["c-suite"]},
-    "job_department": {"values": ["engineering"]},
-    "company_size": {"values": ["201-500"]}
-  }
-}'
+# Funding + product signals for companies from a prior fetch
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"events":{"values":["new_funding_round"],"last_occurrence":60}}}' --number-of-results 20 --tool-reasoning '<user request>'
+npx @vibeprospecting/vpai@latest fetch-businesses-events --args '{"event_types":["new_funding_round","new_product"],"timestamp_from":"2024-10-01"}' --session-id <session_id> --table-name <fetch_entities_table_name> --tool-reasoning '<user request>'
 
-# Sales directors at software companies
-npx @vibeprospecting/vpai@latest fetch-entities --args '{
-  "entity_type": "prospects",
-  "filters": {
-    "job_level": {"values": ["director"]},
-    "job_department": {"values": ["sales"]},
-    "linkedin_category": {"values": ["Software Development"]}
-  }
-}'
+# Match file → events (same session chain)
+npx @vibeprospecting/vpai@latest match-business --file-path ./companies.csv --schema '{"Company":"name"}' --tool-reasoning '<user request>'
+npx @vibeprospecting/vpai@latest fetch-businesses-events --args '{"event_types":["new_partnership"],"timestamp_from":"2023-01-01"}' --session-id <session_id> --table-name <match_business_table_name> --csv --tool-reasoning '<user request>'
 
-# Marketing VPs with verified email at mid-revenue companies
-npx @vibeprospecting/vpai@latest fetch-entities --args '{
-  "entity_type": "prospects",
-  "filters": {
-    "job_level": {"values": ["vice president"]},
-    "job_department": {"values": ["marketing"]},
-    "company_revenue": {"values": ["10M-25M"]},
-    "has_email": true
-  }
-}'
-
-# Engineers new to their role (6-24 months)
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"prospects","filters":{"job_department":{"values":["engineering"]},"current_role_months":{"gte":6,"lte":24}}}'
-
-# All senior people at a specific company
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"prospects","filters":{"business_id":{"values":["biz_abc123"]},"job_level":{"values":["director","vice president","c-suite"]}}}'
-```
-
-## `fetch-prospects-events`
-
-```bash
-# Job changes for specific prospects
-npx @vibeprospecting/vpai@latest fetch-prospects-events --args '{"prospect_ids":["pro_xyz789"],"event_types":["new_job"],"timestamp_from":"2024-07-01"}'
-```
-
-## `web-search`
-
-Use for news, press releases, and context not in Vibe Prospecting data. Prefer dedicated tools for company/person lookups.
-
-```bash
-npx @vibeprospecting/vpai@latest web-search --args '{"query":"Acme Corp Series B funding 2024"}'
+# Prospect-level events
+npx @vibeprospecting/vpai@latest fetch-prospects-events --args '{"event_types":["prospect_changed_role"],"timestamp_from":"2024-07-01"}' --session-id <session_id> --table-name <fetch_entities_table_name> --tool-reasoning '<user request>'
 ```

@@ -1,19 +1,12 @@
 # Autocomplete
 
-Use `autocomplete` before any search that depends on controlled vocabulary fields.
+Run before any search that uses controlled-vocabulary fields. Returns standardized values to use verbatim in the next `fetch-entities` / `fetch-entities-statistics` call.
 
-Responses may include **`session_id`** (top-level or next to **`data`** in a wrapper object). Pass that same value as **`session_id`** in the next tool’s `--args` for the same user task.
+Inspect args shape with: `npx @vibeprospecting/vpai@latest autocomplete --all-parameters`.
 
-## Call Schema
+Output may include `session_id` — pass as `--session-id` to the next tool.
 
-```json
-{
-  "field": "linkedin_category | naics_category | company_tech_stack_tech | job_title | business_intent_topics | city_region",
-  "query": "free-text search string"
-}
-```
-
-## Fields That Require Autocomplete
+## Fields that require autocomplete
 
 - `linkedin_category`
 - `naics_category`
@@ -22,35 +15,33 @@ Responses may include **`session_id`** (top-level or next to **`data`** in a wra
 - `business_intent_topics`
 - `city_region`
 
-## Fields That Do Not Require Autocomplete
+## Fields that do NOT require autocomplete
 
-- `company_country_code` - ISO Alpha-2, for example `"US"`, `"GB"`
-- `company_region_country_code` - ISO 3166-2, for example `"US-NY"`, `"US-CA"`
-- `company_size`, `company_revenue`, `company_age`, `job_level`, `job_department` - use the fixed values in `enums.md`
-- `website_keywords` - free text
+- `company_country_code` — ISO Alpha-2 (e.g. `"US"`, `"GB"`)
+- `company_region_country_code` — ISO 3166-2 (e.g. `"US-NY"`)
+- `company_size`, `company_revenue`, `company_age`, `job_level`, `job_department` — fixed buckets (inspect with `--all-parameters` if needed)
+- `website_keywords` — free text
 
-## Mutual Exclusions
+## Mutual exclusions
 
-- `linkedin_category` and `naics_category` are mutually exclusive
-- `company_region_country_code` and `company_country_code` are mutually exclusive
-- `job_title` requires autocomplete; `job_level` and `job_department` do not
+- `linkedin_category` and `naics_category` — use one, not both.
+- `company_region_country_code` and `company_country_code` — use one.
+- `job_title` requires autocomplete; `job_level` and `job_department` do not.
+
+## Picking values
+
+- Autocomplete may return noisy variants (misspellings, spacing, compound titles). Pick the canonical clean value, usually the first clean result.
+- Multiple values broaden matching with OR logic. Don't include near-duplicates unless you want a wider search.
+- For executive title searches, prefer `job_level` plus the cleanest single `job_title` value.
 
 ## Examples
 
 ```bash
-npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"linkedin_category","query":"software"}'
-npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"company_tech_stack_tech","query":"salesforce"}'
-npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"job_title","query":"data scientist"}'
-npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"business_intent_topics","query":"cloud security"}'
-npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"naics_category","query":"healthcare"}'
+npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"linkedin_category","query":"software"}' --tool-reasoning '<user request>'
+npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"company_tech_stack_tech","query":"salesforce"}' --tool-reasoning '<user request>'
+npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"job_title","query":"data scientist"}' --tool-reasoning '<user request>'
+npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"business_intent_topics","query":"cloud security"}' --tool-reasoning '<user request>'
 
-# Reuse session_id from the autocomplete JSON on the following fetch (same user request)
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"session_id":"SESSION_ID","entity_type":"business","filters":{"linkedin_category":{"values":["Software Development"]}}}'
+# Reuse session_id on the following fetch
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"linkedin_category":{"values":["Software Development"]}}}' --session-id <session_id> --number-of-results 50 --tool-reasoning '<user request>'
 ```
-
-## Picking Values
-
-- Autocomplete can return noisy variants such as misspellings, spacing variants, and compound titles.
-- Pick the canonical clean value only, usually the first clean result.
-- Passing multiple autocomplete values broadens matching with OR logic. Do not include near-duplicates unless you want a wider search.
-- For executive title searches, prefer `job_level` plus the cleanest `job_title` value.

@@ -3,18 +3,24 @@ name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
 compatibility: Run with npx @vibeprospecting/vpai@latest
 metadata:
-  version: "0.1.32"
+  version: "0.1.54"
 ---
 
 # Vibe Prospecting CLI
 
-Prefer this plugin workflow over the generic MCP connector when both are available.
+Prefer this plugin over the generic MCP connector. CLI: `npx @vibeprospecting/vpai@latest`. Default MCP URL (embedded in the published CLI): `https://vp-plugin.explorium.ai/mcp`. Treat every tool response as JSON.
 
-Run with `npx @vibeprospecting/vpai@latest`. The CLI executes tools against the Vibe Prospecting MCP server (`https://vp-plugin.explorium.ai/mcp`) and returns raw JSON results. Treat every tool response as JSON, not prose.
+## Hard Rules
 
-## Fast Auth
+1. **Sample first, always.** Run the COMPLETE workflow on exactly 5 entities (`--number-of-results 5`) before any full run. Show the final enriched rows, then wait for explicit user approval. Never auto-export. "Find 100" still means sample 5 first.
+2. **`--tool-reasoning '<user wording>'`** on every real call. Use the user's request verbatim. Reuse across the whole workflow. Skip ONLY when running `<tool> --all-parameters` with no `--args`.
+3. **Chain via session DB, never paste IDs.** Each step prints `session_id`, `db_path`, and `table_name`. Pass **`--session-id`** with the **`session_id`** from the prior JSON output so the next command uses the same SQLite session store. With **`--session-id`**, **`--table-name`** is **required** for **`enrich-business`**, **`enrich-prospects`**, **`fetch-businesses-events`**, and **`fetch-prospects-events`** — pass the prior step's **`table_name`** exactly. For **`match-*`** only, **`--table-name`** is optional (CLI can pick the first table with the right ID column when omitted). For **`fetch-entities`** prospects scoped to earlier companies, use **`--businesses-table-name`** plus **`--session-id`**.
+4. **`--csv` only on the final step.** Intermediate steps emit JSON for chaining. Add `--csv` once, at the end.
+5. **`autocomplete` first** for: `naics_category`, `linkedin_category`, `company_tech_stack_tech`, `job_title`, `business_intent_topics`, `city_region`. Use returned standardized values, not raw user wording.
+6. **Discover schemas with `<tool> --all-parameters`.** Do not guess args. Reference docs cover workflow + caveats; live schema is the source of truth for field names and shape.
+7. **`--session-id`** is a CLI flag (not inside `--args`). Use the **`session_id`** value returned by the MCP in each prior step's JSON. Omit only on the first call in a chain.
 
-For most sandbox sessions, the API key already exists on disk. Use this fast path first:
+## Auth
 
 ```bash
 mcp__cowork__request_cowork_directory path=~/.config/vpai
@@ -22,305 +28,135 @@ API_KEY=$(python3 -c "import json;print(json.load(open('/sessions/<session-id>/m
 npx @vibeprospecting/vpai@latest config --api-key "$API_KEY"
 ```
 
-If that mount fails or `config.json` is missing, use the fallback flow in [`login.md`](references/login.md).
+If the mount fails or `config.json` is missing, follow [`login.md`](references/login.md).
 
-## Prerequisites
+## Sample Gate
 
-1. **Use the CLI command**: `npx @vibeprospecting/vpai@latest ...`
-2. **Login and setup first**: complete the initial CLI setup and auth flow in [`login.md`](references/login.md) before running tools.
+The sample is the **complete workflow on 5 entities**, not a fetch preview.
 
-## Auth
+1. Fetch exactly 5 (`--number-of-results 5`).
+2. Run **every** subsequent step (`match-*`, `enrich-*`, `fetch-*-events`) on those 5.
+3. Show the **fully enriched final rows** as a markdown table with all useful columns.
+4. Stop. Wait for approval in a new message. Then run at full scale.
 
-Complete first login and setup via [`login.md`](references/login.md) before using this skill.
+NEVER stop after the fetch to ask for approval. Complete the full chain on 5 first.
 
-## Tool reasoning
+Example — user says "find 100 Israeli companies, get 30 CEOs, find contact info":
+- WRONG: fetch 5 companies → show table → ask "continue?"
+- RIGHT: fetch 5 companies → fetch CEOs at those 5 → enrich CEOs with contacts → show final CEO+email+phone table → ask "run full 100?"
 
-When you run a tool for real (anything other than **only** `<tool> --all-parameters` with **no** `--args`), the CLI requires **`--tool-reasoning '<text>'`**.
+### Presenting the sample
 
-Put the **end-user request** that this call is fulfilling in that text: **their wording** from the chat (what they asked you to find or do). The CLI sends it as MCP `tool_reasoning`. Do **not** use a separate “why I picked this tool” explanation instead of the user’s request.
+`Results Found: [X] [entity type] from [Y] [companies/sources] [qualifier]`
 
-Reuse the same user wording across the whole workflow when the task has not changed. `tool_reasoning` is for auditability of the original request, not a per-step justification.
+`Sample Preview ([n] of [total]):` markdown table with the fully enriched rows.
 
-You **do not** pass `--tool-reasoning` when you are **only** inspecting schemas: `npx @vibeprospecting/vpai@latest <tool> --all-parameters` with no `--args`.
+When the preview is a subset of what the user asked for (more rows or fields available at scale), add:
 
-Example:
+`More data available: Preview shows [n] of [total]. Confirm before I run the full export.`
 
-`npx @vibeprospecting/vpai@latest match-business --args '{"businesses_to_match":[{"name":"Google"}]}' --tool-reasoning 'User asked to identify Google as a company'`
+Do **not** mention export when everything the user asked for is already in chat.
 
-## Session ID
+### Before the full export, confirm
 
-Optional **`session_id`** belongs **inside** the `--args` JSON (no separate flag). Reuse the exact string from the **previous** tool’s JSON in the **same** user task (including from autocomplete when the body is `{ "data": [...], "session_id": "..." }`). Omit it when the user starts a **new unrelated** ask.
+- Export size (cap on records).
+- Filter narrowing: industry, size, revenue, region, tech.
+- For prospects: title variants, dedupe by company.
+- For contacts: professional emails only or also personal/phones.
 
-## Sample gate and approval (CRITICAL)
-
-**CRITICAL: NEVER auto-export. ALWAYS run a sample first and wait for explicit user approval before the full run.** Wording like "CSV", "download", or "export N rows" still requires the gate.
-
-The sample is the **full request on 5 entities**: fetch with `page_size: 5`, then run every `match-*`, `enrich-*`, and `fetch-*-events` step the user asked for on those 5. Show the fully enriched rows, ask to approve, then **stop the turn**. Run the same chain on the full set only after the user approves in a new message.
-
-### Standardized response format
-
-**Presentation**
-
-- Show the sample in a complete **left-join style** markdown table with **all available fields** that belong to those rows (include every useful column from the JSON when practical).
-
-**Export language (critical)**
-
-- **Do not** ask the user to export or imply they can get **the full dataset** when everything they asked for is already shown in chat (for example one prospect’s profile and contacts returned in full).
-- **Only** mention export when there is **more data than you displayed**: the preview is a subset of rows (`n` < `total`), or columns or enrichment the user still needs at scale, or the user explicitly asked for a download, CSV, or hub list.
-
-**Results Found**
-
-`[X] [entity type] from [Y] [companies/sources] [key qualifier]`
-
-**Sample Preview ([n] of [total]):**
-
-Markdown table with the sample rows (up to **5** rows for the sample gate; include key columns and other returned fields as appropriate).
-
-When offering export (more rows or bulk fields not fully shown above):
-
-**More data available:** Preview shows `[n]` of `[total]` `[entities]`. Ask the user to **confirm** before you run the full export (complete CSV, pagination, or hub list). Do not start that export work until they confirm.
-
-Do **not** include the **More data available** block when the user already has the full answer in the message.
-
-## Sample Mode
-
-- First batch of any list/export workflow (see **Sample gate**).
-- `page_size: 5` + every requested `match-*`, `enrich-*`, and `fetch-*-events` on those 5.
-- Show the fully enriched rows. Stop and wait for approval.
-
-## Export Mode
-
-- Only enter Export Mode **after** the user has approved the sample in a follow-up message.
-- Use file-first output handling.
-- Before any `--save-csv` call, set `TMPDIR` to a writable path, for example `TMPDIR=/sessions/<id>/tmp-vpai`, then `mkdir -p "$TMPDIR"`.
-- If the environment asks to approve file access often, use the **user's pre-selected workspace or output folder** for `TMPDIR` and for any files you write (one tree for the whole task) so you are not writing under unrelated system paths that trigger per-file prompts.
-- Use `--save-csv` for `fetch-entities`, `match-business`, and `match-prospects`.
-- Do not assume cowork `enrich-*` works with `--save-csv`; check the compatibility table below first.
-- Work from the saved files instead of pasting large raw payloads into chat.
-- Use this only after the user approves the sample in a new message.
-- Before starting the full export, make sure the desired export size is explicit.
-- In chat, return a concise summary plus the saved file path(s).
-
-## Limits
-
-Use these limits when planning batches. If a live schema conflicts with this table, trust the stricter observed partner/runtime limit.
-
-| Tool | Practical limit | Notes |
-|------|-----------------|-------|
-| `match-business` | 50 businesses per call | Cowork schema limit |
-| `match-prospects` | 40 prospects per call | Cowork schema limit |
-| `enrich-business` | 50 business IDs per call | Partner/runtime limit is 50 even if a schema snapshot suggests 100 |
-| `enrich-prospects` | 50 prospect IDs per call | Partner/runtime limit is 50 even if a schema snapshot suggests 100 |
-| `fetch-entities` | keep `page_size` stable across pagination | Cowork schema allows up to 500; prospect fetches typically use cursor pagination |
-
-## `--save-csv` Compatibility
-
-| Tool | `--save-csv` | Notes |
-|------|--------------|-------|
-| `fetch-entities` | yes | Preserves pagination metadata in the CSV response |
-| `match-business` | yes | Returns one CSV result object |
-| `match-prospects` | yes | Returns one CSV result object |
-| `enrich-business` | no for cowork enrich payloads | Cowork enrich responses return stringified `enrichment_results`; capture raw JSON instead |
-| `enrich-prospects` | no for cowork enrich payloads | Cowork enrich responses return stringified `enrichment_results`; capture raw JSON instead |
-
-## Autocomplete First
-
-When the search input is a free-text description and the target filter is one of the MCP autocomplete fields, run `autocomplete` before any `fetch-entities` or `fetch-entities-statistics` call. Use it to get the correct terminology, standardized values, or close matching terms, then use those returned values in the fetch call instead of the raw user wording.
-
-Available autocomplete fields from the MCP schema:
-
-- `naics_category`
-- `linkedin_category`
-- `company_tech_stack_tech`
-- `job_title`
-- `business_intent_topics`
-- `city_region`
-
-If autocomplete returns multiple relevant terms, prefer the best standardized match or include the relevant returned values explicitly in the fetch filter.
-
-## Clarify Before Export
-
-Do not ask the user to choose a mode up front. Always use `Sample mode` first and wait for approval (see **Sample gate**).
-
-Before the full export run, make sure these scope details are clear if they materially affect the result:
-
-1. Export size: how many records the user wants in the full export, and whether results should be capped.
-2. Filter narrowing: industry (`linkedin_category` / `naics_category`), company size, revenue, region/state, tech stack.
-3. For prospect queries: exact title variants to include or exclude, for example `founder/CEO` and `interim CEO`, and whether to dedupe by company.
-4. For contact enrichment: professional email only, or also personal emails and phones.
-
-Use the sample results to surface ambiguity early. After approval, confirm the desired export size before the full export unless the user already stated it explicitly (a stated cap still requires the preview step first unless they waived preview).
-
-## Reference Docs First
-
-Use the reference docs as the default source of truth for workflow and request shape.
-
-- The reference docs now include compact call schemas, workflow intent, tool-specific caveats, and recommended sequencing.
-- Read the matching reference doc before the first real use of an ability in a task.
-- Use `--all-parameters` only when the reference doc does not provide enough detail for the payload you need, or when a real call fails and you need to debug the schema.
-- If the reference doc and live schema appear to conflict, trust the live schema for exact field names and payload shape, but keep the reference doc's workflow guidance.
-
-## Ability Docs
-
-- [`autocomplete.md`](references/autocomplete.md) - controlled vocab lookups before searching
-- [`fetch.md`](references/fetch.md) - use `fetch-entities` / `fetch-entities-statistics` in cowork mode, plus entity event retrieval workflows
-- [`match.md`](references/match.md) - resolve known entities into canonical IDs
-- [`enrich.md`](references/enrich.md) - enrich businesses and prospects after you have IDs
-- [`fetch-stats.md`](references/fetch-stats.md) - counts and market-sizing queries without fetching records
-- [`enums.md`](references/enums.md) - consolidated fixed enums and common filter values
-
-## Default Workflow
-
-**This rule applies the first time you use a tool in a task. Read the matching reference doc first. Use `--all-parameters` only if the reference schema is missing needed detail or the real call fails and you need to inspect the live schema.**
-
-**ALWAYS run a sample with `page_size: 5` first, post the Sample Preview table, and wait for explicit user approval before the full run. NEVER auto-export, regardless of size, CSV, or download wording in the user's message.**
+## Workflow
 
 ```
-Step 0  ->  Complete setup and login from `login.md`
-Step 1  ->  npx @vibeprospecting/vpai@latest --help    Discover available tools and their descriptions
-Step 2  ->  Read the matching reference doc in `references/` for workflow guidance and caveats
-Step 2.5 ->  Always run a sample fetch with `page_size: 5` as the first batch, show the table, and stop until the user approves.
-Step 3  ->  npx @vibeprospecting/vpai@latest <tool> --args '<json>'    Execute the tool using the reference doc schema
-Fallback -> npx @vibeprospecting/vpai@latest <tool> --all-parameters   Use only if the reference schema is insufficient or the real call errors
-Optional ->  add --save-csv to fetch-entities / match calls only after approval
-Mode rule ->  Sample mode = first batch with `page_size: 5`; Export mode = only after user approval; never run both in the same turn
+0. Auth — see Auth section above (or login.md)
+1. npx @vibeprospecting/vpai@latest --help                    Discover tools
+2. Read references/<tool>.md for workflow + caveats
+3. Sample (5 entities, full chain) — see Sample Gate
+4. npx @vibeprospecting/vpai@latest <tool> --args '<json>' --tool-reasoning '<user request>'
+5. Chain: --session-id <session_id> [--table-name <table_name>] [--businesses-table-name <name> for prospect fetch from businesses]
+6. Final step only: add --csv
+Fallback: <tool> --all-parameters   when reference doc is insufficient or a real call errors
 ```
 
-Never make the first real call to a tool without reading its matching reference doc first. If the call shape is still unclear or the tool errors, inspect the live schema with `--all-parameters` before retrying.
+Reference docs:
+
+- [`autocomplete.md`](references/autocomplete.md) — controlled-vocab lookups
+- [`fetch.md`](references/fetch.md) — `fetch-entities`, `fetch-*-events`
+- [`match.md`](references/match.md) — resolve known entities to IDs
+- [`enrich.md`](references/enrich.md) — enrichment after IDs
+- [`fetch-stats.md`](references/fetch-stats.md) — counts and market sizing
+- [`login.md`](references/login.md) — auth fallback flow
 
 ## Flags
 
 | Flag | Description |
 |------|-------------|
-| `--help` | List all tools with descriptions |
-| `--all-parameters` | Print input and output JSON schemas (fallback for missing doc detail or error debugging) |
-| `--args '<json>'` | Tool arguments as a JSON string |
+| `--help` | List tools |
+| `--all-parameters` | Print input/output JSON schemas (use to discover or debug) |
+| `--args '<json>'` | Tool arguments |
 | `--json` | With `--all-parameters`, output schemas as compact JSON |
-| `--save-csv` | Extract supported row-shaped results and write CSV output. Use for fetch-entities and match by default. Cowork enrich responses are usually stringified and should be captured as raw JSON instead. |
-
----
-
-## Output and Pagination
-
-- All tool responses are JSON payloads. Read fields from the JSON exactly as returned.
-- For fetch-entities and match calls, adding `--save-csv` writes the returned rows to CSV using the response-derived schema.
-- In `Sample mode`, keep responses intentionally small and use `page_size: 5` for the first batch. For that sample reply, show rows in chat using **Sample gate** / **Standardized response format** above; the rule to avoid pasting huge payloads applies to **export** pages and large JSON, not the 5-row approval preview.
-- In export mode, treat saved CSV files as the primary artifact for fetch-entities / match results, and raw JSON files as the primary artifact for cowork enrich results.
-- Fetch and match return a single CSV result object with `file_path`, `columns`, `row_count`, and `source`.
-- `--save-csv` responses preserve pagination metadata when available: `next_cursor` is passed through, and if no cursor exists but the tool returns a `page` object, that `page` object is included in the CSV metadata response.
-- Non-cowork array-shaped enrich responses can still produce multiple sibling enrichment tables. In that case `--save-csv` returns `files`, with one CSV entry per enrichment key.
-- The CSV columns come from the returned row shape: fetch-entities uses `data[]`; match uses `matched_businesses[]` or `matched_prospects[]`; array-shaped enrich responses use each sibling `{enrichment}.data[]` array.
-- Do not paste large raw result payloads into the chat context if you can avoid it.
-- Prefer saving substantial results to files and working from those files so context stays focused and reusable.
-- Prefer this capture pattern when you need to inspect raw JSON without pasting it into chat: redirect to a file under the same pre-selected folder as `TMPDIR` (or `/tmp/resp.json` only when that folder is acceptable), then extract only the needed fields with `python3 -c 'import json; ...'`.
-- In responses, summarize the relevant findings and reference the saved file instead of dumping the full payload.
-- If a result set can exceed 50 items, prefer export mode and use pagination instead of assuming the first response is complete.
-- Pagination can work in two ways: page-number pagination or cursor pagination.
-- Prospect fetches typically return `next_cursor` via `page.next_cursor`. Business fetches may return a `page` object without a reusable cursor. Pass any returned cursor token verbatim.
-- For page-number pagination, set `page_size` and advance `page` until you have enough results or the response stops returning new items.
-- For cursor pagination, send the first request with `"next_cursor": null`, then pass the returned `next_cursor` value into the next request.
-- Keep every other filter and request option the same when advancing `next_cursor`; only the cursor value should change between pages.
-- Treat the returned `next_cursor` as an opaque token. Do not edit, parse, or generate it yourself.
-- Each response gives you the token for the following page. If the response has no usable `next_cursor`, pagination is finished.
-- In export mode, keep writing each paginated result to files instead of pasting page payloads into chat.
-- Stop when the response returns no new items or no usable next cursor.
-- Example page-number pattern: page 1 with `page_size: 50`, then page 2, page 3, and so on.
-
-```bash
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]}},"page_size":50,"page":1}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]}},"page_size":50,"page":2}'
-
-# Cursor pagination
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]}},"page_size":50,"next_cursor":null}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]}},"page_size":50,"next_cursor":"<next_cursor_from_previous_response>"}'
-```
-
----
+| `--session-id <id>` | Same workflow: pass **`session_id`** from the previous tool's JSON (opens the shared SQLite DB under `db_path`). |
+| `--table-name <name>` | **Required** with `--session-id` for **`enrich-business`**, **`enrich-prospects`**, **`fetch-businesses-events`**, and **`fetch-prospects-events`** (prior step's `table_name`). Optional for **`match-*`** only (disambiguate when multiple tables). |
+| `--businesses-table-name <name>` | For `fetch-entities` + `entity_type: prospects`: table whose rows supply `business_id` for the filter (with `--session-id`). |
+| `--number-of-results <n>` | For `fetch-entities`: total rows across pages (CLI paginates). Omit for one raw page. |
+| `--file-path <path>` | For `match-business` / `match-prospects`: path to a CSV file to match. Each row becomes one candidate. Requires `--schema`. |
+| `--schema '<json>'` | Required with `--file-path`. JSON dict mapping CSV column headers to API field names. Business fields: `name`, `domain`. Prospect fields: `full_name`, `first_name`, `last_name`, `email`, `phone_number`, `linkedin`, `company_name`, `business_id`. |
+| `--csv` | Also write flattened CSV. **Final step only.** |
 
 ## Filter Pattern
 
-All filters follow the same shape:
 ```json
-{ "values": ["value1", "value2"], "negate": false }
-```
-Set `"negate": true` to **exclude** those values instead of including them.
-
-Range filters use `gte`/`lte`:
-```json
-{ "gte": 6, "lte": 24 }
+{ "values": ["v1", "v2"], "negate": false }   // include or exclude
+{ "gte": 6, "lte": 24 }                       // range
+true | false | null                           // boolean (not wrapped)
 ```
 
-Boolean filters are plain `true` / `false` / `null` (not wrapped in `values`).
+## Limits
 
----
+| Tool | Limit |
+|------|-------|
+| `match-business` | 50 per call |
+| `match-prospects` | 40 per call |
+| `enrich-business` | 50 IDs per call |
+| `enrich-prospects` | 50 IDs per call |
+| `fetch-businesses-events` / `fetch-prospects-events` | Up to **20** IDs per MCP request (CLI chunks + merges). Pass **`event_types`** and **`timestamp_from`** in **`--args`**. Do not put **`business_ids`** / **`prospect_ids`** in **`--args`** — IDs come only from **`--table-name`**. |
+| `fetch-entities` | use `--number-of-results`; CLI paginates. Don't pass `next_cursor` or `page_size` manually |
 
-## Common Multi-Step Workflows
+## Common Workflows
 
-In the examples below, replace **`SESSION_ID`** with the `session_id` string from the **previous** tool’s JSON for the same user request (skip on the first call of a new task).
+Replace `SESSION_ID` with the `session_id` from the previous step.
 
-### Authenticate then run a workflow
+### VP Engineering at SaaS in NY
 
-Run **Step 0** from **Auth** first, then continue below.
-
-### Clean + enrich + find leaders at qualifying companies
-
-```text
-1. match-prospects(names/emails/linkedins)             -> prospect_ids
-2. enrich-prospects(profiles)                          -> current company per prospect
-3. match-business(distinct company names)              -> business_ids
-4. enrich-business(firmographics)                      -> revenue / size / geography filter
-5. enrich-business(challenges, strategic-insights)     -> pain points
-6. fetch-entities(prospects, business_id in [...],
-   job_level=[c-suite,vice president],
-   job_department=[engineering])                       -> leaders
-7. enrich-prospects(contacts) on the selected leaders  -> emails / phones
-```
-
-Use this as a fill-in-the-values template for company qualification plus leadership targeting workflows.
-
-### "Tell me everything about Stripe"
 ```bash
-npx @vibeprospecting/vpai@latest match-business --args '{"businesses_to_match":[{"name":"Stripe","domain":"stripe.com"}]}'
-npx @vibeprospecting/vpai@latest enrich-business --args '{"session_id":"SESSION_ID","business_ids":["<id>"],"enrichments":["firmographics","technographics","funding-and-acquisitions","competitive-landscape","strategic-insights","workforce-trends"]}'
+npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"linkedin_category","query":"software"}' --tool-reasoning 'find VP Eng at SaaS in NY'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"prospects","filters":{"job_level":{"values":["vice president"]},"job_department":{"values":["engineering"]},"linkedin_category":{"values":["Software Development"]},"company_region_country_code":{"values":["US-NY"]},"has_email":true}}' --number-of-results 50 --tool-reasoning 'find VP Eng at SaaS in NY'
+npx @vibeprospecting/vpai@latest enrich-prospects --args '{"enrichments":["contacts","profiles"]}' --session-id <session_id> --table-name <fetch_entities_table_from_prior_step> --csv --tool-reasoning 'find VP Eng at SaaS in NY'
 ```
 
-### "Find VP Engineering contacts at SaaS companies in New York"
+### Companies that raised + use Salesforce
+
 ```bash
-npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"linkedin_category","query":"software"}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"session_id":"SESSION_ID","entity_type":"prospect","filters":{"job_level":{"values":["vice president"]},"job_department":{"values":["engineering"]},"linkedin_category":{"values":["Software Development"]},"company_region_country_code":{"values":["US-NY"]},"has_email":true}}'
-npx @vibeprospecting/vpai@latest enrich-prospects --args '{"session_id":"SESSION_ID","prospect_ids":["pro_1","pro_2","pro_3"],"enrichments":["contacts","profiles"]}'
+npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"company_tech_stack_tech","query":"salesforce"}' --tool-reasoning 'companies that raised and use Salesforce'
+npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_tech_stack_tech":{"values":["Salesforce"]},"events":{"values":["new_funding_round"],"last_occurrence":60}}}' --number-of-results 50 --tool-reasoning 'companies that raised and use Salesforce'
+npx @vibeprospecting/vpai@latest fetch-businesses-events --args '{"event_types":["new_funding_round"],"timestamp_from":"2024-10-01"}' --session-id <session_id> --table-name <fetch_entities_table_from_prior_step> --csv --tool-reasoning 'companies that raised and use Salesforce'
 ```
 
-### "Find companies that just raised funding and use Salesforce"
+### Market sizing
+
 ```bash
-npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"company_tech_stack_tech","query":"salesforce"}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"session_id":"SESSION_ID","entity_type":"business","filters":{"company_tech_stack_tech":{"values":["Salesforce"]},"events":{"values":["new_funding_round"],"last_occurrence":60}}}'
-npx @vibeprospecting/vpai@latest fetch-businesses-events --args '{"session_id":"SESSION_ID","business_ids":["<ids>"],"event_types":["new_funding_round"],"timestamp_from":"2024-10-01"}'
+npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type":"businesses","filters":{"linkedin_category":{"values":["Hospital & Health Care"]},"company_country_code":{"values":["US"]}}}' --tool-reasoning 'market sizing US healthcare'
 ```
-
-### "Who are the decision makers at our top accounts?"
-```bash
-npx @vibeprospecting/vpai@latest match-business --args '{"businesses_to_match":[{"domain":"company1.com"},{"domain":"company2.com"}]}'
-npx @vibeprospecting/vpai@latest fetch-entities --args '{"session_id":"SESSION_ID","entity_type":"prospect","filters":{"business_id":{"values":["biz_1","biz_2"]},"job_level":{"values":["c-suite","vice president","director"]},"has_email":true}}'
-npx @vibeprospecting/vpai@latest enrich-prospects --args '{"session_id":"SESSION_ID","prospect_ids":["<ids>"],"enrichments":["contacts","profiles"]}'
-```
-
-### "Market sizing: US healthcare IT"
-```bash
-npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"linkedin_category","query":"health"}'
-npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"session_id":"SESSION_ID","entity_type":"business","filters":{"linkedin_category":{"values":["Health, Wellness & Fitness","Hospital & Health Care"]},"company_country_code":{"values":["US"]}}}'
-```
-
----
 
 ## Troubleshooting
 
 | Error | Solution |
 |-------|----------|
-| `npx @vibeprospecting/vpai@latest` fails to run | Verify `npx` can reach npm and retry the command |
-| Auth / 401 / not authenticated | Do **Auth -> Step 0** via [`login.md`](references/login.md), then retry the same `npx @vibeprospecting/vpai@latest ...` command. |
-| Empty results | Read the matching reference doc, then run `--all-parameters` only if the doc schema is not enough to debug the payload |
-| Search fails with autocomplete fields | Call `autocomplete` first for `linkedin_category`, `naics_category`, `company_tech_stack_tech`, `job_title`, `business_intent_topics` |
-| `linkedin_category` + `naics_category` together | Mutually exclusive - use one or the other |
+| Auth / 401 | Run Auth section above; if mount fails, follow [`login.md`](references/login.md) |
+| Missing **`session_id`** in JSON / CLI refuses to chain | The MCP must return **`session_id`**; ensure you target production **`https://vp-plugin.explorium.ai/mcp`** (embedded in the npm CLI). Pass **`--session-id`** with that exact string on the next step. |
+| Wrong rows used when chaining | Pass **`--table-name`** matching the prior step's **`table_name`**. |
+| **`enrich-*` or `fetch-*-events` with `--session-id` but no `--table-name`** | **`--table-name`** is required for **`enrich-business`**, **`enrich-prospects`**, **`fetch-businesses-events`**, and **`fetch-prospects-events`** whenever you pass **`--session-id`**. |
+| Empty results | Check filter values; run `autocomplete` for controlled-vocab fields; inspect with `--all-parameters` |
+| `linkedin_category` + `naics_category` together | Mutually exclusive — use one |
 | JSON parse error | Validate JSON; check shell quoting |
-| Timeout | Default 120 s; reduce `page_size` or simplify filters |
+| Timeout on `fetch-entities`, `enrich-*`, `fetch-*-events`, or `match-*` with `--file-path` | **Re-run the exact same command** with the same `--session-id`, `--table-name`, `--args`, and (for match) `--file-path` / `--schema`. The CLI resumes from the last checkpoint — completed ID batches are skipped, no work is repeated. If the job already completed on a prior run, the stored manifest is returned instantly with no API calls. |
+| Timeout without `--session-id` | Add `--session-id <any-stable-id>` to enable checkpointing, then retry. Without a session ID the CLI cannot resume. |

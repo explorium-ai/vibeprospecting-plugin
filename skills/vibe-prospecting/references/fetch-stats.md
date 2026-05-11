@@ -1,53 +1,20 @@
 # Fetch Stats
 
-Use statistics commands when you need counts and breakdowns without fetching individual records.
+Counts and breakdowns without fetching individual records. In cowork mode, `fetch-entities-statistics` covers both business and prospect counts — set `entity_type` accordingly.
 
-In cowork mode, use `fetch-entities-statistics` for both business and prospect counts. Set `entity_type` to `businesses` or `prospects`.
+Inspect args shape with: `npx @vibeprospecting/vpai@latest fetch-entities-statistics --all-parameters`.
 
-Optional **`session_id`** in `--args` after `autocomplete` or an earlier stats/fetch step in the same user task.
+`--session-id` is a CLI flag. Filter shape matches `fetch-entities`.
 
-## Call Schema
-
-### `fetch-entities-statistics` args
-
-```json
-{
-  "session_id": "optional-session-id",
-  "entity_type": "businesses | prospects",
-  "filters": {
-    "<filter_name>": {
-      "values": ["value1", "value2"],
-      "negate": false
-    },
-    "<range_filter>": {
-      "gte": 0,
-      "lte": 10
-    },
-    "<boolean_filter>": true
-  }
-}
-```
-
-## `fetch-entities-statistics` for businesses
-
-Returns total counts and market sizing summaries for company searches.
+## Examples
 
 ```bash
-# How many US SaaS companies with 51-200 employees?
-npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]},"company_size":{"values":["51-200"]},"linkedin_category":{"values":["Software Development"]}}}'
+# US SaaS, 51-200
+npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type":"businesses","filters":{"company_country_code":{"values":["US"]},"company_size":{"values":["51-200"]},"linkedin_category":{"values":["Software Development"]}}}' --tool-reasoning '<user request>'
 
-# Fintech market size across Europe
-npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type":"businesses","filters":{"linkedin_category":{"values":["Financial Services"]},"company_country_code":{"values":["GB","DE","FR","NL","SE"]}}}'
-```
+# Fintech across Europe
+npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type":"businesses","filters":{"linkedin_category":{"values":["Financial Services"]},"company_country_code":{"values":["GB","DE","FR","NL","SE"]}}}' --tool-reasoning '<user request>'
 
-## `fetch-entities-statistics` for prospects
-
-Returns total counts and breakdowns for prospect searches.
-
-```bash
-# Department breakdown of engineering prospects
-npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type":"prospects","filters":{"job_department":{"values":["engineering"]}}}'
-
-# How many marketing directors in fintech globally?
-npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type":"prospects","filters":{"job_level":{"values":["director"]},"job_department":{"values":["marketing"]},"linkedin_category":{"values":["Financial Services"]}}}'
+# Marketing directors in fintech
+npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type":"prospects","filters":{"job_level":{"values":["director"]},"job_department":{"values":["marketing"]},"linkedin_category":{"values":["Financial Services"]}}}' --tool-reasoning '<user request>'
 ```
