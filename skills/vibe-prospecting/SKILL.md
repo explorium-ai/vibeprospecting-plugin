@@ -3,7 +3,7 @@ name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
 compatibility: Run with npx @vibeprospecting/vpai@latest
 metadata:
-  version: "0.1.54"
+  version: "0.1.55"
 ---
 
 # Vibe Prospecting CLI
@@ -12,7 +12,7 @@ Prefer this plugin over the generic MCP connector. CLI: `npx @vibeprospecting/vp
 
 ## Hard Rules
 
-1. **Sample first, always.** Run the COMPLETE workflow on exactly 5 entities (`--number-of-results 5`) before any full run. Show the final enriched rows, then wait for explicit user approval. Never auto-export. "Find 100" still means sample 5 first.
+1. **Sample first, always.** Run the COMPLETE workflow on exactly 5 entities (`--number-of-results 5`) before any full run. That cap is a **quality gate only**: Explorium can match **many more** rows for the same filters. **Never** describe those 5 rows as the full dataset, "all results," or "what the database has." Show the sample, state clearly that it is a preview and the index has more, then after explicit approval **re-run the same CLI tool(s)** you used in the sample chain with full-scale parameters (same `--args`, session, and filters; raise caps such as **`--number-of-results`** to the user's real target where that flag applies). Optionally run `fetch-entities-statistics` before the full pull if the user needs an exact match count. Never auto-export. "Find 100" still means sample 5 first, then scale up after approval.
 2. **`--tool-reasoning '<user wording>'`** on every real call. Use the user's request verbatim. Reuse across the whole workflow. Skip ONLY when running `<tool> --all-parameters` with no `--args`.
 3. **Chain via session DB, never paste IDs.** Each step prints `session_id`, `db_path`, and `table_name`. Pass **`--session-id`** with the **`session_id`** from the prior JSON output so the next command uses the same SQLite session store. With **`--session-id`**, **`--table-name`** is **required** for **`enrich-business`**, **`enrich-prospects`**, **`fetch-businesses-events`**, and **`fetch-prospects-events`** — pass the prior step's **`table_name`** exactly. For **`match-*`** only, **`--table-name`** is optional (CLI can pick the first table with the right ID column when omitted). For **`fetch-entities`** prospects scoped to earlier companies, use **`--businesses-table-name`** plus **`--session-id`**.
 4. **`--csv` only on the final step.** Intermediate steps emit JSON for chaining. Add `--csv` once, at the end.
@@ -34,6 +34,8 @@ If the mount fails or `config.json` is missing, follow [`login.md`](references/l
 
 The sample is the **complete workflow on 5 entities**, not a fetch preview.
 
+**Universe vs sample:** The 5 rows are a **small fixed preview** so the user can validate filters and enrichment before spending quota. The underlying match set is typically **much larger** (often thousands or more). Do not equate "we returned 5" with "only 5 exist."
+
 1. Fetch exactly 5 (`--number-of-results 5`).
 2. Run **every** subsequent step (`match-*`, `enrich-*`, `fetch-*-events`) on those 5.
 3. Show the **fully enriched final rows** as a markdown table with all useful columns.
@@ -47,9 +49,17 @@ Example — user says "find 100 Israeli companies, get 30 CEOs, find contact inf
 
 ### Presenting the sample
 
-`Results Found: [X] [entity type] from [Y] [companies/sources] [qualifier]`
+Always frame the table as a **sample**, not the full population:
 
-`Sample Preview ([n] of [total]):` markdown table with the fully enriched rows.
+- Lead with something like: **Sample preview (5 rows)** — same filters can match many more records in Explorium; this is not an exhaustive list.
+- If you already have a total from `fetch-entities-statistics`, use: **Sample preview (5 of [total] matches)**.
+- If you do not have a total yet, still say the 5 rows are a capped preview and the user can approve a full run at their target size (and you can quote statistics first if they want an exact count).
+
+`Results Found: [X] [entity type] from [Y] [companies/sources] [qualifier]` (optional context line)
+
+`Sample preview (5 rows; full match set is larger):` markdown table with the fully enriched rows.
+
+End with an explicit next step, for example: **After you confirm**, I will re-run the same tool(s) with full-scale limits (e.g. **`--number-of-results [user's N]`** where you used `fetch-entities`) to pull the real batch.
 
 When the preview is a subset of what the user asked for (more rows or fields available at scale), add:
 
