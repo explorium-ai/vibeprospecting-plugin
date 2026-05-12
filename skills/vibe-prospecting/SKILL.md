@@ -3,7 +3,7 @@ name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
 compatibility: Run with npx @vibeprospecting/vpai@latest
 metadata:
-  version: "0.1.55"
+  version: "0.1.56"
 ---
 
 # Vibe Prospecting CLI
@@ -12,13 +12,14 @@ Prefer this plugin over the generic MCP connector. CLI: `npx @vibeprospecting/vp
 
 ## Hard Rules
 
-1. **Sample first, always.** Run the COMPLETE workflow on exactly 5 entities (`--number-of-results 5`) before any full run. That cap is a **quality gate only**: Explorium can match **many more** rows for the same filters. **Never** describe those 5 rows as the full dataset, "all results," or "what the database has." Show the sample, state clearly that it is a preview and the index has more, then after explicit approval **re-run the same CLI tool(s)** you used in the sample chain with full-scale parameters (same `--args`, session, and filters; raise caps such as **`--number-of-results`** to the user's real target where that flag applies). Optionally run `fetch-entities-statistics` before the full pull if the user needs an exact match count. Never auto-export. "Find 100" still means sample 5 first, then scale up after approval.
+1. **Sample first, always.** Run the COMPLETE workflow on exactly 5 entities (`--number-of-results 5`) before any full run. That cap is a **quality gate only**: Explorium can match **many more** rows for the same filters. **Never** describe those 5 rows as the full dataset, "all results," or "what the database has." Show the sample, state clearly that it is a preview and the index has more, then after explicit approval **re-run the same CLI tool(s)** you used in the sample chain with full-scale parameters (same `--args`, session, and filters; raise caps such as **`--number-of-results`** to the user's real target where that flag applies). Run **`fetch-entities-statistics`** only when **all** of your discovery **`fetch-entities`** filters (and any supported scope flags) are valid for statistics too — see rule 8. Never auto-export. "Find 100" still means sample 5 first, then scale up after approval.
 2. **`--tool-reasoning '<user wording>'`** on every real call. Use the user's request verbatim. Reuse across the whole workflow. Skip ONLY when running `<tool> --all-parameters` with no `--args`.
 3. **Chain via session DB, never paste IDs.** Each step prints `session_id`, `db_path`, and `table_name`. Pass **`--session-id`** with the **`session_id`** from the prior JSON output so the next command uses the same SQLite session store. With **`--session-id`**, **`--table-name`** is **required** for **`enrich-business`**, **`enrich-prospects`**, **`fetch-businesses-events`**, and **`fetch-prospects-events`** — pass the prior step's **`table_name`** exactly. For **`match-*`** only, **`--table-name`** is optional (CLI can pick the first table with the right ID column when omitted). For **`fetch-entities`** prospects scoped to earlier companies, use **`--businesses-table-name`** plus **`--session-id`**.
 4. **`--csv` only on the final step.** Intermediate steps emit JSON for chaining. Add `--csv` once, at the end.
 5. **`autocomplete` first** for: `naics_category`, `linkedin_category`, `company_tech_stack_tech`, `job_title`, `business_intent_topics`, `city_region`. Use returned standardized values, not raw user wording.
 6. **Discover schemas with `<tool> --all-parameters`.** Do not guess args. Reference docs cover workflow + caveats; live schema is the source of truth for field names and shape.
 7. **`--session-id`** is a CLI flag (not inside `--args`). Use the **`session_id`** value returned by the MCP in each prior step's JSON. Omit only on the first call in a chain.
+8. **`fetch-entities-statistics` only when stats supports the full fetch.** Compare your planned **`fetch-entities`** payload to **`fetch-entities-statistics --all-parameters`**. Call statistics **only if every** filter key, value shape, **`entity_type`**, and any scope you rely on (e.g. **`--session-id`** / **`--businesses-table-name`**) is accepted by the statistics tool the same way it is for **`fetch-entities`**. If any part of the discovery query is missing from the stats schema, unsupported, or would require a different shape, **skip stats** — do not call it with a partial or guessed subset. When you do call it, reuse the **same** **`--args`** filter object (and supported flags) as **`fetch-entities`**, plus **`--tool-reasoning`**. Prefer running stats **before** presenting the sample so you can headline **5 of [total]** when the response includes a usable count. When you **did not** run statistics (or stats had no usable total), present **Sample preview (5 rows)** and tell the user Explorium has **much more** matching the same filters—**do not** quote how many remain, **do not** say statistics failed or a total was unavailable, and **never** invent a number. Call stats again before a full-scale fetch **if** filters or scope changed **and** the full fetch filter set still fits statistics.
 
 ## Auth
 
@@ -34,36 +35,37 @@ If the mount fails or `config.json` is missing, follow [`login.md`](references/l
 
 The sample is the **complete workflow on 5 entities**, not a fetch preview.
 
-**Universe vs sample:** The 5 rows are a **small fixed preview** so the user can validate filters and enrichment before spending quota. The underlying match set is typically **much larger** (often thousands or more). Do not equate "we returned 5" with "only 5 exist."
+**Universe vs sample:** The 5 rows are a **small fixed preview** so the user can validate filters and enrichment before spending quota. The underlying match set is typically **much larger** (often thousands or more). Do not equate "we returned 5" with "only 5 exist." Ground volume with **`fetch-entities-statistics`** only when the **entire** planned **`fetch-entities`** filter set is valid for stats (rule 8); never guess a total.
 
-1. Fetch exactly 5 (`--number-of-results 5`).
-2. Run **every** subsequent step (`match-*`, `enrich-*`, `fetch-*-events`) on those 5.
-3. Show the **fully enriched final rows** as a markdown table with all useful columns.
-4. Stop. Wait for approval in a new message. Then run at full scale.
+1. **When the full fetch filter set is supported by statistics**, run **`fetch-entities-statistics`** with the same discovery **`entity_type`**, **`filters`**, and supported CLI flags as the upcoming **`fetch-entities`** (per rule 8). Otherwise skip stats; still tell the user Explorium has **much more** for the same filters (no numeric total, no mention of statistics gaps).
+2. Fetch exactly 5 (`--number-of-results 5`).
+3. Run **every** subsequent step (`match-*`, `enrich-*`, `fetch-*-events`) on those 5.
+4. Show the **fully enriched final rows** as a markdown table with all useful columns.
+5. Stop. Wait for approval in a new message. Then run at full scale.
 
 NEVER stop after the fetch to ask for approval. Complete the full chain on 5 first.
 
 Example — user says "find 100 Israeli companies, get 30 CEOs, find contact info":
 - WRONG: fetch 5 companies → show table → ask "continue?"
-- RIGHT: fetch 5 companies → fetch CEOs at those 5 → enrich CEOs with contacts → show final CEO+email+phone table → ask "run full 100?"
+- RIGHT: when the **full** **`fetch-entities`** filter set is supported by **`fetch-entities-statistics`**, run stats first (same **`--args`** filters) → fetch 5 companies → fetch CEOs at those 5 → enrich CEOs with contacts → show final table (**5 of [total]** when stats gave a total; otherwise **Sample preview (5 rows)** plus a short line that **much more** matches exist for these filters—no count, no stats apology) → ask "run full 100?"
 
 ### Presenting the sample
 
-Always frame the table as a **sample**, not the full population:
+Always frame the table as a **sample**, not the full population.
 
-- Lead with something like: **Sample preview (5 rows)** — same filters can match many more records in Explorium; this is not an exhaustive list.
-- If you already have a total from `fetch-entities-statistics`, use: **Sample preview (5 of [total] matches)**.
-- If you do not have a total yet, still say the 5 rows are a capped preview and the user can approve a full run at their target size (and you can quote statistics first if they want an exact count).
+- **When statistics returned a usable total** (you only called stats because **every** **`fetch-entities`** filter was valid for **`fetch-entities-statistics`**): **Sample preview (5 of [total] matches)** — **[total]** must come from **`fetch-entities-statistics`**, never from counting the 5 rows.
+- **When you did not use a numeric total** (no stats, or no usable total): **Sample preview (5 rows)** and one plain sentence that Explorium has **much more** matching these filters—**do not** say how many more, **do not** mention statistics or missing totals, **never** invent **[total]**.
 
 `Results Found: [X] [entity type] from [Y] [companies/sources] [qualifier]` (optional context line)
 
-`Sample preview (5 rows; full match set is larger):` markdown table with the fully enriched rows.
+**Headline:** **Sample preview (5 of [total] matches):** only with a stats-backed **[total]**; otherwise **Sample preview (5 rows):** then a single framing line that **much more** records exist for the same filters (qualitative only).
 
 End with an explicit next step, for example: **After you confirm**, I will re-run the same tool(s) with full-scale limits (e.g. **`--number-of-results [user's N]`** where you used `fetch-entities`) to pull the real batch.
 
 When the preview is a subset of what the user asked for (more rows or fields available at scale), add:
 
-`More data available: Preview shows [n] of [total]. Confirm before I run the full export.`
+- With a stats-backed **[total]**: `More data available: Preview shows [n] of [total]. Confirm before I run the full export.`
+- Without a numeric **[total]**: say the preview is five rows, **much more** exists in Explorium for the same filters, and ask to confirm a full export—**do not** give a remaining count or mention why no total was shown.
 
 Do **not** mention export when everything the user asked for is already in chat.
 
@@ -80,7 +82,7 @@ Do **not** mention export when everything the user asked for is already in chat.
 0. Auth — see Auth section above (or login.md)
 1. npx @vibeprospecting/vpai@latest --help                    Discover tools
 2. Read references/<tool>.md for workflow + caveats
-3. Sample (5 entities, full chain) — see Sample Gate
+3. When the **entire** planned **`fetch-entities`** filter set (and supported flags) matches **`fetch-entities-statistics`** per **`--all-parameters`**: run **`fetch-entities-statistics`**, then sample (5 entities, full chain) — see Sample Gate
 4. npx @vibeprospecting/vpai@latest <tool> --args '<json>' --tool-reasoning '<user request>'
 5. Chain: --session-id <session_id> [--table-name <table_name>] [--businesses-table-name <name> for prospect fetch from businesses]
 6. Final step only: add --csv
@@ -139,6 +141,8 @@ Replace `SESSION_ID` with the `session_id` from the previous step.
 
 ```bash
 npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"linkedin_category","query":"software"}' --tool-reasoning 'find VP Eng at SaaS in NY'
+# When every fetch-entities filter (and flags) is valid for fetch-entities-statistics (--all-parameters):
+npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type":"prospects","filters":{"job_level":{"values":["vice president"]},"job_department":{"values":["engineering"]},"linkedin_category":{"values":["Software Development"]},"company_region_country_code":{"values":["US-NY"]},"has_email":true}}' --tool-reasoning 'find VP Eng at SaaS in NY'
 npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"prospects","filters":{"job_level":{"values":["vice president"]},"job_department":{"values":["engineering"]},"linkedin_category":{"values":["Software Development"]},"company_region_country_code":{"values":["US-NY"]},"has_email":true}}' --number-of-results 50 --tool-reasoning 'find VP Eng at SaaS in NY'
 npx @vibeprospecting/vpai@latest enrich-prospects --args '{"enrichments":["contacts","profiles"]}' --session-id <session_id> --table-name <fetch_entities_table_from_prior_step> --csv --tool-reasoning 'find VP Eng at SaaS in NY'
 ```
@@ -147,6 +151,8 @@ npx @vibeprospecting/vpai@latest enrich-prospects --args '{"enrichments":["conta
 
 ```bash
 npx @vibeprospecting/vpai@latest autocomplete --args '{"field":"company_tech_stack_tech","query":"salesforce"}' --tool-reasoning 'companies that raised and use Salesforce'
+# When every fetch-entities filter (and flags) is valid for fetch-entities-statistics (--all-parameters):
+npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type":"businesses","filters":{"company_tech_stack_tech":{"values":["Salesforce"]},"events":{"values":["new_funding_round"],"last_occurrence":60}}}' --tool-reasoning 'companies that raised and use Salesforce'
 npx @vibeprospecting/vpai@latest fetch-entities --args '{"entity_type":"businesses","filters":{"company_tech_stack_tech":{"values":["Salesforce"]},"events":{"values":["new_funding_round"],"last_occurrence":60}}}' --number-of-results 50 --tool-reasoning 'companies that raised and use Salesforce'
 npx @vibeprospecting/vpai@latest fetch-businesses-events --args '{"event_types":["new_funding_round"],"timestamp_from":"2024-10-01"}' --session-id <session_id> --table-name <fetch_entities_table_from_prior_step> --csv --tool-reasoning 'companies that raised and use Salesforce'
 ```
