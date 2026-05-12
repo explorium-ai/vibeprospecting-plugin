@@ -1,20 +1,25 @@
 {
   "name": "vibeprospecting",
-  "interface": {
-    "displayName": "Vibe Prospecting Plugins"
+  "metadata": {
+    "description": "Vibe Prospecting plugins for Codex — B2B data, prospecting, enrichment."
+  },
+  "owner": {
+    "name": "Vibe Prospecting (Explorium)",
+    "email": "support@vibeprospecting.ai"
   },
   "plugins": [
     {
       "name": "vpai",
       "source": {
-        "source": "local",
-        "path": "./vpai-plugin"
+        "source": "github",
+        "repo": "explorium-ai/vibeprospecting-plugin"
       },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Productivity"
+      "description": "Power your chat with B2B data: lead lists, company research, contact enrichment, and outreach personalization.",
+      "homepage": "https://vibeprospecting.ai",
+      "repository": "https://github.com/explorium-ai/vibeprospecting-plugin",
+      "license": "MIT",
+      "category": "data",
+      "keywords": ["b2b", "prospecting", "leads", "sales", "enrichment", "companies", "contacts"]
     }
   ]
 }
