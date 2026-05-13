@@ -2,7 +2,7 @@
 
 Counts and breakdowns without fetching individual records. In cowork mode, `fetch-entities-statistics` covers both business and prospect counts — set `entity_type` accordingly.
 
-Inspect args shape with: `npx @vibeprospecting/vpai@latest fetch-entities-statistics --all-parameters`.
+Use the examples below when the planned stats call matches them. Before the first real `--args` for `fetch-entities-statistics`, run `npx @vibeprospecting/vpai@latest fetch-entities-statistics --all-parameters` once (mandatory, not only when uncertain). That prints `{ name, description, inputSchema }`; use **`inputSchema`** for argument shapes. Never invent parameters.
 
 `--session-id` is a CLI flag. Filter shape matches `fetch-entities`.
 

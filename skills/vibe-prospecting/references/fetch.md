@@ -2,7 +2,7 @@
 
 Search for businesses or prospects, retrieve event details. In cowork mode, `fetch-entities` covers both — set `entity_type` to `businesses` or `prospects`.
 
-Inspect args shape with: `npx @vibeprospecting/vpai@latest <tool> --all-parameters`.
+Use the examples below when the planned fetch call matches them. Before the first real `--args` for each fetch-related tool, run `npx @vibeprospecting/vpai@latest <tool> --all-parameters` once (mandatory per tool, not only when uncertain). That prints `{ name, description, inputSchema }`; use **`inputSchema`** for argument shapes. Never invent parameters.
 
 ## Rules
 
@@ -104,7 +104,7 @@ Session-based bulk events for companies or prospects you already have in the ses
 - **`--csv`** on this step writes a flattened CSV **next to the session DB**; the JSON manifest includes **`csv_path`** and **`columns`**.
 - **Resume:** If a run times out, **re-run the same command** (same **`--session-id`**, **`--table-name`**, **`--args`**). Completed ID batches are skipped until the job finishes.
 
-Inspect allowed **`event_types`** and payload shape with **`fetch-businesses-events --all-parameters`** / **`fetch-prospects-events --all-parameters`**.
+Before the first real events call, inspect allowed **`event_types`** and **`--args`** shape from the **input** JSON Schema via **`fetch-businesses-events --all-parameters`** / **`fetch-prospects-events --all-parameters`** (routine pull, not only when uncertain).
 
 ### Examples
 

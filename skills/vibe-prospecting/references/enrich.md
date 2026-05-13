@@ -2,7 +2,7 @@
 
 Run after you have business or prospect IDs.
 
-Inspect args shape with: `npx @vibeprospecting/vpai@latest <tool> --all-parameters`.
+Use the examples below when the planned enrich call matches them. Before the first real `--args` for that enrich tool, run `npx @vibeprospecting/vpai@latest <tool> --all-parameters` once (mandatory per tool, not only when uncertain). That prints `{ name, description, inputSchema }`; use **`inputSchema`** for argument shapes. Never invent parameters.
 
 ## Rules
 

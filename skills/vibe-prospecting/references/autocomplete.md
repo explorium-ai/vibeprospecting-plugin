@@ -2,7 +2,7 @@
 
 Run before any search that uses controlled-vocabulary fields. Returns standardized values to use verbatim in the next `fetch-entities` / `fetch-entities-statistics` call.
 
-Inspect args shape with: `npx @vibeprospecting/vpai@latest autocomplete --all-parameters`.
+Use the examples below when the planned autocomplete call matches them. Before the first real `--args` for `autocomplete`, run `npx @vibeprospecting/vpai@latest autocomplete --all-parameters` once (mandatory, not only when uncertain). That prints `{ name, description, inputSchema }` to stdout; use **`inputSchema`** for argument shapes. Never invent parameters.
 
 Output may include `session_id` — pass as `--session-id` to the next tool.
 
@@ -19,7 +19,7 @@ Output may include `session_id` — pass as `--session-id` to the next tool.
 
 - `company_country_code` — ISO Alpha-2 (e.g. `"US"`, `"GB"`)
 - `company_region_country_code` — ISO 3166-2 (e.g. `"US-NY"`)
-- `company_size`, `company_revenue`, `company_age`, `job_level`, `job_department` — fixed buckets (inspect with `--all-parameters` if needed)
+- `company_size`, `company_revenue`, `company_age`, `job_level`, `job_department` — fixed buckets (use `--all-parameters` on `fetch-entities` / `fetch-entities-statistics` for exact allowed enum strings)
 - `website_keywords` — free text
 
 ## Mutual exclusions

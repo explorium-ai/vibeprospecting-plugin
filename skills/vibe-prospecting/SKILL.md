@@ -17,9 +17,9 @@ Prefer this plugin over the generic MCP connector. CLI: `npx @vibeprospecting/vp
 3. **Chain via session DB, never paste IDs.** Each step prints `session_id`, `db_path`, and `table_name`. Pass **`--session-id`** with the **`session_id`** from the prior JSON output so the next command uses the same SQLite session store. With **`--session-id`**, **`--table-name`** is **required** for **`enrich-business`**, **`enrich-prospects`**, **`fetch-businesses-events`**, and **`fetch-prospects-events`** — pass the prior step's **`table_name`** exactly. For **`match-*`** only, **`--table-name`** is optional (CLI can pick the first table with the right ID column when omitted). For **`fetch-entities`** prospects scoped to earlier companies, use **`--businesses-table-name`** plus **`--session-id`**.
 4. **`--csv` only on the final step.** Intermediate steps emit JSON for chaining. Add `--csv` once, at the end.
 5. **`autocomplete` first** for: `naics_category`, `linkedin_category`, `company_tech_stack_tech`, `job_title`, `business_intent_topics`, `city_region`. Use returned standardized values, not raw user wording.
-6. **Discover schemas with `<tool> --all-parameters`.** Do not guess args. Reference docs cover workflow + caveats; live schema is the source of truth for field names and shape.
+6. **Never invent tool parameters.** Before the **first** `--args` execution of each distinct tool in a workflow, run `npx @vibeprospecting/vpai@latest <tool> --all-parameters` for that tool (once per tool per task unless you already printed its schema earlier in the same workflow). That command prints one JSON object to stdout: **`name`**, **`description`**, and **`inputSchema`** (the tool **input** JSON Schema). **Do this even when** the planned call matches the examples and you are not uncertain—examples can drift; the printed schema is authoritative. Run `--all-parameters` again if you change tools, filters, or shapes materially, or if anything still feels ambiguous. You may use examples and reference docs as shortcuts only **after** they align with that live schema. Build `--args` only from fields and shapes confirmed by **`inputSchema`** from `--all-parameters` (and examples when they match it).
 7. **`--session-id`** is a CLI flag (not inside `--args`). Use the **`session_id`** value returned by the MCP in each prior step's JSON. Omit only on the first call in a chain.
-8. **`fetch-entities-statistics` only when stats supports the full fetch.** Compare your planned **`fetch-entities`** payload to **`fetch-entities-statistics --all-parameters`**. Call statistics **only if every** filter key, value shape, **`entity_type`**, and any scope you rely on (e.g. **`--session-id`** / **`--businesses-table-name`**) is accepted by the statistics tool the same way it is for **`fetch-entities`**. If any part of the discovery query is missing from the stats schema, unsupported, or would require a different shape, **skip stats** — do not call it with a partial or guessed subset. When you do call it, reuse the **same** **`--args`** filter object (and supported flags) as **`fetch-entities`**, plus **`--tool-reasoning`**. Prefer running stats **before** presenting the sample so you can headline **5 of [total]** when the response includes a usable count. When you **did not** run statistics (or stats had no usable total), present **Sample preview (5 rows)** and tell the user Explorium has **much more** matching the same filters—**do not** quote how many remain, **do not** say statistics failed or a total was unavailable, and **never** invent a number. Call stats again before a full-scale fetch **if** filters or scope changed **and** the full fetch filter set still fits statistics.
+8. **`fetch-entities-statistics` only when stats supports the full fetch.** Compare your planned **`fetch-entities`** payload to the **input schema** from **`fetch-entities-statistics --all-parameters`**. Call statistics **only if every** filter key, value shape, **`entity_type`**, and any scope you rely on (e.g. **`--session-id`** / **`--businesses-table-name`**) is accepted by the statistics tool the same way it is for **`fetch-entities`**. If any part of the discovery query is missing from the stats schema, unsupported, or would require a different shape, **skip stats** — do not call it with a partial or guessed subset. When you do call it, reuse the **same** **`--args`** filter object (and supported flags) as **`fetch-entities`**, plus **`--tool-reasoning`**. Prefer running stats **before** presenting the sample so you can headline **5 of [total]** when the response includes a usable count. When you **did not** run statistics (or stats had no usable total), present **Sample preview (5 rows)** and tell the user Explorium has **much more** matching the same filters—**do not** quote how many remain, **do not** say statistics failed or a total was unavailable, and **never** invent a number. Call stats again before a full-scale fetch **if** filters or scope changed **and** the full fetch filter set still fits statistics.
 
 ## Auth
 
@@ -82,11 +82,12 @@ Do **not** mention export when everything the user asked for is already in chat.
 0. Auth — see Auth section above (or login.md)
 1. npx @vibeprospecting/vpai@latest --help                    Discover tools
 2. Read references/<tool>.md for workflow + caveats
-3. When the **entire** planned **`fetch-entities`** filter set (and supported flags) matches **`fetch-entities-statistics`** per **`--all-parameters`**: run **`fetch-entities-statistics`**, then sample (5 entities, full chain) — see Sample Gate
-4. npx @vibeprospecting/vpai@latest <tool> --args '<json>' --tool-reasoning '<user request>'
-5. Chain: --session-id <session_id> [--table-name <table_name>] [--businesses-table-name <name> for prospect fetch from businesses]
-6. Final step only: add --csv
-Fallback: <tool> --all-parameters   when reference doc is insufficient or a real call errors
+3. Before the first real `--args` for each tool: `npx @vibeprospecting/vpai@latest <tool> --all-parameters` (mandatory per tool, not only when uncertain). Prints the tool **input** schema as JSON. Run again if the planned call diverges from what you already validated.
+4. Build `--args` only from fields confirmed by that printed input schema (examples count only when they match it). If a parameter is not confirmed there, do not use it.
+5. When the **entire** planned **`fetch-entities`** filter set (and supported flags) matches **`fetch-entities-statistics`** input schema per **`--all-parameters`**: run **`fetch-entities-statistics`**, then sample (5 entities, full chain) — see Sample Gate
+6. npx @vibeprospecting/vpai@latest <tool> --args '<json>' --tool-reasoning '<user request>'
+7. Chain: --session-id <session_id> [--table-name <table_name>] [--businesses-table-name <name> for prospect fetch from businesses]
+8. Final step only: add --csv
 ```
 
 Reference docs:
@@ -103,9 +104,8 @@ Reference docs:
 | Flag | Description |
 |------|-------------|
 | `--help` | List tools |
-| `--all-parameters` | Print input/output JSON schemas (use to discover or debug) |
+| `--all-parameters` | Print `{ name, description, inputSchema }` to stdout (pretty-printed JSON). Run before the first `--args` for each tool in a workflow (and again if the tool or payload changes materially). Routine, not only when uncertain—the **`inputSchema`** field is authoritative. |
 | `--args '<json>'` | Tool arguments |
-| `--json` | With `--all-parameters`, output schemas as compact JSON |
 | `--session-id <id>` | Same workflow: pass **`session_id`** from the previous tool's JSON (opens the shared SQLite DB under `db_path`). |
 | `--table-name <name>` | **Required** with `--session-id` for **`enrich-business`**, **`enrich-prospects`**, **`fetch-businesses-events`**, and **`fetch-prospects-events`** (prior step's `table_name`). Optional for **`match-*`** only (disambiguate when multiple tables). |
 | `--businesses-table-name <name>` | For `fetch-entities` + `entity_type: prospects`: table whose rows supply `business_id` for the filter (with `--session-id`). |
@@ -171,7 +171,7 @@ npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type
 | Missing **`session_id`** in JSON / CLI refuses to chain | The MCP must return **`session_id`**; ensure you target production **`https://vp-plugin.explorium.ai/mcp`** (embedded in the npm CLI). Pass **`--session-id`** with that exact string on the next step. |
 | Wrong rows used when chaining | Pass **`--table-name`** matching the prior step's **`table_name`**. |
 | **`enrich-*` or `fetch-*-events` with `--session-id` but no `--table-name`** | **`--table-name`** is required for **`enrich-business`**, **`enrich-prospects`**, **`fetch-businesses-events`**, and **`fetch-prospects-events`** whenever you pass **`--session-id`**. |
-| Empty results | Check filter values; run `autocomplete` for controlled-vocab fields; inspect with `--all-parameters` |
+| Empty results | Check filter values; run `autocomplete` for controlled-vocab fields; re-check the relevant live **input** schema with `<tool> --all-parameters` |
 | `linkedin_category` + `naics_category` together | Mutually exclusive — use one |
 | JSON parse error | Validate JSON; check shell quoting |
 | Timeout on `fetch-entities`, `enrich-*`, `fetch-*-events`, or `match-*` with `--file-path` | **Re-run the exact same command** with the same `--session-id`, `--table-name`, `--args`, and (for match) `--file-path` / `--schema`. The CLI resumes from the last checkpoint — completed ID batches are skipped, no work is repeated. If the job already completed on a prior run, the stored manifest is returned instantly with no API calls. |
