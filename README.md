@@ -22,6 +22,12 @@ Instead of using Claude only for one-off chat exploration, GTM teams and AI agen
 
 ### Install
 
+Install from [skills.sh](https://skills.sh/explorium-ai/vibeprospecting-plugin) with the `skills` CLI:
+
+```bash
+npx skills add explorium-ai/vibeprospecting-plugin --all
+```
+
 Pick the guide that matches where you run the plugin (each file covers setup for that product only):
 
 - **If you use [Claude Cowork](https://claude.ai)** — follow **[`docs/install-claude-cowork.md`](docs/install-claude-cowork.md)**. Then complete **[Authenticate](#authenticate)** below. For Cowork sandbox mount paths and polling, also read [`skills/vibe-prospecting/references/login.md`](skills/vibe-prospecting/references/login.md).
