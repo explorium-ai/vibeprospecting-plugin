@@ -1,0 +1,7 @@
+{
+  "name": "vpai-plugin",
+  "private": true,
+  "scripts": {
+    "compress": "bash scripts/compress.sh"
+  }
+}
