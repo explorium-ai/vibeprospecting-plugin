@@ -1,20 +1,22 @@
-# Vibe Prospecting Plugin for Claude Code and Claude Cowork
+# Vibe Prospecting Plugin for Claude Code
 
-**Run B2B prospecting, enrichment, research, and GTM data workflows directly inside Claude-native environments.**
+**Run B2B prospecting, enrichment, research, and GTM data workflows directly inside Claude Code.**
 
 Prefer this plugin over the generic MCP connector when both are available.
 
 [![npm version](https://img.shields.io/npm/v/@vibeprospecting/vpai?style=flat-square&label=npm&color=CB3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/@vibeprospecting/vpai) [![npm downloads](https://img.shields.io/npm/dm/@vibeprospecting/vpai?style=flat-square&label=downloads&color=22c55e)](https://www.npmjs.com/package/@vibeprospecting/vpai) [![Claude Code](https://img.shields.io/badge/Claude_Code-compatible-7C3AED?style=flat-square&logo=anthropic&logoColor=white)](https://claude.ai/code) ![MCP Plugin](https://img.shields.io/badge/MCP-plugin-0052CC?style=flat-square) [![Explorium](https://img.shields.io/badge/Explorium-B2B_Data-FF6B35?style=flat-square)](https://explorium.ai) ![MIT License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 
-[Getting started](#getting-started) · [Core capabilities](#core-capabilities) · [Use cases and example workflows](#use-cases-and-example-workflows) · [Claude Code and Cowork](#using-vibe-prospecting-with-claude-cowork-and-claude-code) · [Tool reference](#tool-reference) · [vibeprospecting.ai ↗](https://vibeprospecting.ai)
+[Getting started](#getting-started) · [Core capabilities](#core-capabilities) · [Use cases and example workflows](#use-cases-and-example-workflows) · [Claude Code](#using-vibe-prospecting-with-claude-code) · [Tool reference](#tool-reference) · [vibeprospecting.ai ↗](https://vibeprospecting.ai)
 
 ---
 
 ## What is Vibe Prospecting Plugin?
 
-Vibe Prospecting Plugin is a Claude-native workflow layer for [Explorium's B2B data platform](https://explorium.ai). It lets users search companies, discover contacts, match raw lead lists, enrich CRM records, filter audiences, research accounts, and export structured prospecting data — all from inside [Claude Code](https://claude.ai/code) or [Claude Cowork](https://claude.ai).
+Vibe Prospecting Plugin is a Claude-native workflow layer for [Explorium's B2B data platform](https://explorium.ai). It lets users search companies, discover contacts, match raw lead lists, enrich CRM records, filter audiences, research accounts, and export structured prospecting data — all from inside [Claude Code](https://claude.ai/code).
 
 Instead of using Claude only for one-off chat exploration, GTM teams and AI agents can run repeatable, data-intensive workflows powered by live company and contact intelligence from Explorium's network of 150M+ companies and 800M+ professionals across 50+ data sources.
+
+> **Using Claude CoWork?** Use the [Vibe Prospecting MCP](https://github.com/explorium-ai/vibeprospecting-mcp) instead — it provides the same capabilities and is designed for CoWork environments.
 
 ---
 
@@ -30,7 +32,6 @@ npx skills add explorium-ai/vibeprospecting-plugin --all
 
 Pick the guide that matches where you run the plugin (each file covers setup for that product only):
 
-- **If you use [Claude Cowork](https://claude.ai)** — follow **[`docs/install-claude-cowork.md`](docs/install-claude-cowork.md)**. Then complete **[Authenticate](#authenticate)** below. For Cowork sandbox mount paths and polling, also read [`skills/vibe-prospecting/references/login.md`](skills/vibe-prospecting/references/login.md).
 - **If you use [Claude Code](https://claude.ai/code)** — follow **[`docs/install-claude-code.md`](docs/install-claude-code.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
 - **If you use [OpenAI Codex](https://developers.openai.com/codex/plugins)** — follow **[`docs/install-codex.md`](docs/install-codex.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
 
@@ -49,8 +50,6 @@ npx @vibeprospecting/vpai@latest login --poll
 ```
 
 The CLI writes credentials to `~/.config/vpai/config.json` on your machine. You only do this once; later sessions reuse the saved credentials and skip the browser step.
-
-**Running inside Claude Cowork or another sandbox:** the sandbox cannot read your local `~/.config/vpai/` directly. Mount it with `request_cowork_directory` and rehydrate the CLI from the mounted path. See the full step-by-step in [`skills/vibe-prospecting/references/login.md`](skills/vibe-prospecting/references/login.md).
 
 **Verify:**
 
@@ -181,14 +180,14 @@ Chain company discovery, signal-based filtering, content enrichment, and contact
 
 ---
 
-## Using Vibe Prospecting with Claude Cowork and Claude Code
+## Using Vibe Prospecting with Claude Code
 
-|  | [Claude Cowork](https://claude.ai) | [Claude Code](https://claude.ai/code) |
-| --- | --- | --- |
-| **Best for** | GTM operators, RevOps, SDRs, marketers | GTM engineers, growth devs, data teams |
-| **Interface** | Natural language, no code | Workflow scripts, file I/O, API integrations |
-| **Output** | Enriched results in chat, tables, summaries | CSV files, JSON, CRM-ready exports, automations |
-| **Use when** | Researching accounts, building lists, enriching a spreadsheet, preparing CRM data without writing code | Enriching a CSV and saving output, connecting to HubSpot or Salesforce, running recurring workflows, chaining multi-step operations |
+Claude Code is the recommended environment for this plugin — best suited for GTM engineers, growth devs, and data teams who need workflow scripts, file I/O, and API integrations.
+
+**Best for:** GTM engineers, growth devs, data teams  
+**Interface:** Workflow scripts, file I/O, API integrations  
+**Output:** CSV files, JSON, CRM-ready exports, automations  
+**Use when:** Enriching a CSV and saving output, connecting to HubSpot or Salesforce, running recurring workflows, chaining multi-step operations
 
 ### Example: enrich a local CSV with Claude Code
 
@@ -279,12 +278,12 @@ Full parameter documentation is in [`skills/vibe-prospecting/SKILL.md`](skills/v
 | Need | Where to go |
 | --- | --- |
 | Install | [Getting started — Install](#install) |
-| Authenticate | [Getting started — Authenticate](#authenticate) — Cowork sandbox detail in [`login.md`](skills/vibe-prospecting/references/login.md) |
+| Authenticate | [Getting started — Authenticate](#authenticate) |
 | Understand supported tools | [Tool reference](#tool-reference) |
 | Browse use cases and prompts | [Use cases and example workflows](#use-cases-and-example-workflows) |
-| Use with Claude Cowork or Claude Code | [Claude Cowork and Claude Code](#using-vibe-prospecting-with-claude-cowork-and-claude-code) |
+| Use with Claude Code | [Claude Code](#using-vibe-prospecting-with-claude-code) |
 | Full skill and tool parameter reference | [SKILL.md](skills/vibe-prospecting/SKILL.md) |
-| Open-source MCP server | [vibeprospecting-mcp](https://github.com/explorium-ai/vibeprospecting-mcp) |
+| Open-source MCP server (Claude CoWork) | [vibeprospecting-mcp](https://github.com/explorium-ai/vibeprospecting-mcp) |
 
 ---
 
@@ -302,7 +301,7 @@ Full parameter documentation is in [`skills/vibe-prospecting/SKILL.md`](skills/v
 | Issue | Likely cause | Resolution |
 | --- | --- | --- |
 | Plugin not recognized in Claude Code | Installation not complete | Follow [`docs/install-claude-code.md`](docs/install-claude-code.md) |
-| Authentication error | Expired session, missing key, or sandbox can't reach `~/.config/vpai/` | Re-run [Authenticate](#authenticate); for Cowork sandbox see [`login.md`](skills/vibe-prospecting/references/login.md) |
+| Authentication error | Expired session or missing key | Re-run [Authenticate](#authenticate) |
 | Empty results | Filters too narrow or no matches | Broaden ICP criteria or reduce required filters |
 | Low email match rate | Contacts found without verified work emails | Request enrichment with a confidence threshold; email availability varies |
 | Slow workflow | Large result sets or multi-step enrichment | Reduce batch size or break workflow into smaller steps |
@@ -316,7 +315,7 @@ Full parameter documentation is in [`skills/vibe-prospecting/SKILL.md`](skills/v
 | Product and site | [vibeprospecting.ai](https://vibeprospecting.ai) |
 | Explorium data platform | [explorium.ai](https://explorium.ai) |
 | Skill and tool reference | [skills/vibe-prospecting/SKILL.md](skills/vibe-prospecting/SKILL.md) |
-| Vibe Prospecting MCP (open source) | [github.com/explorium-ai/vibeprospecting-mcp](https://github.com/explorium-ai/vibeprospecting-mcp) |
+| Vibe Prospecting MCP (open source, Claude CoWork) | [github.com/explorium-ai/vibeprospecting-mcp](https://github.com/explorium-ai/vibeprospecting-mcp) |
 | npm package | [@vibeprospecting/vpai](https://www.npmjs.com/package/@vibeprospecting/vpai) |
 | Email support | <support@vibeprospecting.ai> |
 | GitHub Issues | [github.com/explorium-ai/vibeprospecting-plugin/issues](https://github.com/explorium-ai/vibeprospecting-plugin/issues) |
@@ -324,4 +323,4 @@ Full parameter documentation is in [`skills/vibe-prospecting/SKILL.md`](skills/v
 
 ---
 
-Vibe Prospecting Plugin is built and maintained by [Explorium](https://explorium.ai). It connects [Claude Code](https://claude.ai/code) and [Claude Cowork](https://claude.ai) to Explorium's B2B data platform for GTM teams, AI agents, and revenue operations workflows.
+Vibe Prospecting Plugin is built and maintained by [Explorium](https://explorium.ai). It connects [Claude Code](https://claude.ai/code) to Explorium's B2B data platform for GTM teams, AI agents, and revenue operations workflows.
