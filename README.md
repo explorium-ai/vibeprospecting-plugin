@@ -12,11 +12,11 @@ Prefer this plugin over the generic MCP connector when both are available.
 
 ## What is Vibe Prospecting Plugin?
 
-Vibe Prospecting Plugin is a Claude-native workflow layer for [Explorium's B2B data platform](https://explorium.ai). It lets users search companies, discover contacts, match raw lead lists, enrich CRM records, filter audiences, research accounts, and export structured prospecting data — all from inside [Claude Code](https://claude.ai/code).
+Vibe Prospecting Plugin is a Claude-native workflow layer for [Explorium's B2B Data Layer](https://github.com/explorium-ai). It lets users search companies, discover contacts, match raw lead lists, enrich CRM records, filter audiences, research accounts, and export structured prospecting data all from inside [Claude Code](https://claude.ai/code) and [Codex](https://developers.openai.com/codex/plugins).
 
 Instead of using Claude only for one-off chat exploration, GTM teams and AI agents can run repeatable, data-intensive workflows powered by live company and contact intelligence from Explorium's network of 150M+ companies and 800M+ professionals across 50+ data sources.
 
-> **Using Claude CoWork?** Use the [Vibe Prospecting MCP](https://github.com/explorium-ai/vibeprospecting-mcp) instead — it provides the same capabilities and is designed for CoWork environments.
+> **Using Claude CoWork?** Use the [Vibe Prospecting MCP](https://github.com/explorium-ai/vibeprospecting-mcp) instead it provides the same capabilities and is designed for CoWork environments.
 
 ---
 
@@ -32,8 +32,8 @@ npx skills add explorium-ai/vibeprospecting-plugin --all
 
 Pick the guide that matches where you run the plugin (each file covers setup for that product only):
 
-- **If you use [Claude Code](https://claude.ai/code)** — follow **[`docs/install-claude-code.md`](docs/install-claude-code.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
-- **If you use [OpenAI Codex](https://developers.openai.com/codex/plugins)** — follow **[`docs/install-codex.md`](docs/install-codex.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
+- **If you use [Claude Code](https://claude.ai/code)** follow **[`docs/install-claude-code.md`](docs/install-claude-code.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
+- **If you use [OpenAI Codex](https://developers.openai.com/codex/plugins)** follow **[`docs/install-codex.md`](docs/install-codex.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
 
 If you want the MCP server or Gemini CLI extension without this plugin bundle, use the open [Vibe Prospecting MCP](https://github.com/explorium-ai/vibeprospecting-mcp) repository.
 
@@ -41,7 +41,7 @@ If you want the MCP server or Gemini CLI extension without this plugin bundle, u
 
 Before running any tool, sign in with your Explorium account. Authentication is OAuth-based; there is no API key to copy manually for normal local use.
 
-**First time — log in through the browser:**
+**First time log in through the browser:**
 
 ```bash
 npx @vibeprospecting/vpai@latest login
@@ -97,7 +97,7 @@ Then run `login` again.
 
 ## Use cases and example workflows
 
-Vibe Prospecting is designed for multi-step workflows — the kind you would otherwise build in Clay or n8n — but running natively inside Claude. Each section below describes a use case and includes a ready-to-use prompt.
+Vibe Prospecting is designed for multi-step workflows the kind you would otherwise build in Clay or n8n but running natively inside Claude. Each section below describes a use case and includes a ready-to-use prompt.
 
 | Use Claude chat alone for | Use Vibe Prospecting Plugin for |
 | --- | --- |
@@ -108,7 +108,7 @@ Vibe Prospecting is designed for multi-step workflows — the kind you would oth
 | Manual copy-paste work | CSV/JSON input, identity matching, enrichment, and structured export |
 | Generating estimates | Querying real company and contact data via [Explorium](https://explorium.ai) |
 
-### 1 — Build a targeted prospect list
+### 1 Build a targeted prospect list
 
 Define ICP filters, discover matching companies, find relevant contacts, enrich records, and export structured lists ready for outreach or CRM import.
 
@@ -116,15 +116,15 @@ Define ICP filters, discover matching companies, find relevant contacts, enrich 
 
 > Find 500 US-based cybersecurity companies with 50 to 500 employees. For each company, find the VP Sales, Head of Partnerships, or CRO. Return company name, domain, headcount, revenue range, contact name, title, LinkedIn URL, and email if available.
 
-### 2 — Enrich CRM records
+### 2 Enrich CRM records
 
-Match existing leads and accounts by email, LinkedIn URL, or name and company. Fill missing fields — title, domain, phone, revenue, headcount — and prepare clean records for CRM update.
+Match existing leads and accounts by email, LinkedIn URL, or name and company. Fill missing fields title, domain, phone, revenue, headcount and prepare clean records for CRM update.
 
 **For:** RevOps, SalesOps, CRM admins &nbsp;|&nbsp; **Output:** Clean CSV ready for CRM import
 
 > Take this CSV of Salesforce leads. Match each person by email, LinkedIn URL, or name and company. Add current title, company domain, LinkedIn URL, work email, phone if available, headcount, revenue, and industry. Export a clean CSV for CRM update.
 
-### 3 — Find work emails from LinkedIn URLs
+### 3 Find work emails from LinkedIn URLs
 
 Match LinkedIn profile URLs to professional records and return verified work contact details.
 
@@ -132,7 +132,7 @@ Match LinkedIn profile URLs to professional records and return verified work con
 
 > For each LinkedIn URL in this CSV, match the person to a professional profile and return work email, current company, title, company domain, and confidence level.
 
-### 4 — Build an ABM account list
+### 4 Build an ABM account list
 
 Build targeted account lists, filter by company attributes, and find two to three decision-makers per account by role and seniority.
 
@@ -140,7 +140,7 @@ Build targeted account lists, filter by company attributes, and find two to thre
 
 > Find 300 fintech companies in North America with 100 to 2,000 employees. Filter for companies likely to have sales or marketing operations teams. Find 2 to 3 senior marketing or revenue leaders per account.
 
-### 5 — Score inbound leads
+### 5 Score inbound leads
 
 Enrich form submissions, identify the company, evaluate ICP fit against firmographic and technographic criteria, and rank or route leads based on match score.
 
@@ -148,7 +148,7 @@ Enrich form submissions, identify the company, evaluate ICP fit against firmogra
 
 > Enrich these inbound leads, identify their companies, add headcount, revenue range, and industry, and score each lead from 1 to 5 based on ICP fit for a mid-market B2B SaaS sales motion.
 
-### 6 — Clean and enrich a CSV
+### 6 Clean and enrich a CSV
 
 Normalize company names, deduplicate contacts, match each row to a real profile, enrich missing fields, and export a clean standardized output.
 
@@ -156,7 +156,7 @@ Normalize company names, deduplicate contacts, match each row to a real profile,
 
 > Normalize company names, deduplicate contacts, match each row to a person or company profile, enrich missing fields, and export a standardized CSV.
 
-### 7 — Research account pain points
+### 7 Research account pain points
 
 Look up company signals and summarize likely business or technical pain points per account for outbound messaging.
 
@@ -164,9 +164,9 @@ Look up company signals and summarize likely business or technical pain points p
 
 > For these 100 target accounts, summarize likely business or technical pain points relevant to data infrastructure, GTM operations, or sales productivity. Include company name, domain, pain point summary, and suggested outreach angle.
 
-### 8 — Run a multi-step GTM workflow
+### 8 Run a multi-step GTM workflow
 
-Chain company discovery, signal-based filtering, content enrichment, and contact discovery into a single workflow — the kind of pipeline you would normally build in Clay or n8n, running natively inside Claude.
+Chain company discovery, signal-based filtering, content enrichment, and contact discovery into a single workflow the kind of pipeline you would normally build in Clay or n8n, running natively inside Claude.
 
 **For:** GTM engineers, growth teams, sales leaders &nbsp;|&nbsp; **Output:** Signal-filtered companies with qualified growth contacts
 
@@ -182,7 +182,7 @@ Chain company discovery, signal-based filtering, content enrichment, and contact
 
 ## Using Vibe Prospecting with Claude Code
 
-Claude Code is the recommended environment for this plugin — best suited for GTM engineers, growth devs, and data teams who need workflow scripts, file I/O, and API integrations.
+Claude Code is the recommended environment for this plugin best suited for GTM engineers, growth devs, and data teams who need workflow scripts, file I/O, and API integrations.
 
 **Best for:** GTM engineers, growth devs, data teams  
 **Interface:** Workflow scripts, file I/O, API integrations  
@@ -277,8 +277,8 @@ Full parameter documentation is in [`skills/vibe-prospecting/SKILL.md`](skills/v
 
 | Need | Where to go |
 | --- | --- |
-| Install | [Getting started — Install](#install) |
-| Authenticate | [Getting started — Authenticate](#authenticate) |
+| Install | [Getting started Install](#install) |
+| Authenticate | [Getting started Authenticate](#authenticate) |
 | Understand supported tools | [Tool reference](#tool-reference) |
 | Browse use cases and prompts | [Use cases and example workflows](#use-cases-and-example-workflows) |
 | Use with Claude Code | [Claude Code](#using-vibe-prospecting-with-claude-code) |
@@ -319,8 +319,8 @@ Full parameter documentation is in [`skills/vibe-prospecting/SKILL.md`](skills/v
 | npm package | [@vibeprospecting/vpai](https://www.npmjs.com/package/@vibeprospecting/vpai) |
 | Email support | <support@vibeprospecting.ai> |
 | GitHub Issues | [github.com/explorium-ai/vibeprospecting-plugin/issues](https://github.com/explorium-ai/vibeprospecting-plugin/issues) |
-| License | MIT — [LICENSE](https://github.com/explorium-ai/vibeprospecting-plugin/blob/main/LICENSE) |
+| License | MIT [LICENSE](https://github.com/explorium-ai/vibeprospecting-plugin/blob/main/LICENSE) |
 
 ---
 
-Vibe Prospecting Plugin is built and maintained by [Explorium](https://explorium.ai). It connects [Claude Code](https://claude.ai/code) to Explorium's B2B data platform for GTM teams, AI agents, and revenue operations workflows.
+Vibe Prospecting Plugin is built and maintained by [Explorium](https://explorium.ai). It connects [Claude Code](https://claude.ai/code) to [Explorium's B2B Data Layer](https://github.com/explorium-ai) for GTM teams, AI agents, and revenue operations workflows.
