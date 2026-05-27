@@ -4,7 +4,9 @@
 
 Prefer this plugin over the generic MCP connector when both are available.
 
-[![npm version](https://img.shields.io/npm/v/@vibeprospecting/vpai?style=flat-square&label=npm&color=CB3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/@vibeprospecting/vpai) [![npm downloads](https://img.shields.io/npm/dm/@vibeprospecting/vpai?style=flat-square&label=downloads&color=22c55e)](https://www.npmjs.com/package/@vibeprospecting/vpai) [![Claude Code](https://img.shields.io/badge/Claude_Code-compatible-7C3AED?style=flat-square&logo=anthropic&logoColor=white)](https://claude.ai/code) ![MCP Plugin](https://img.shields.io/badge/MCP-plugin-0052CC?style=flat-square) [![Explorium](https://img.shields.io/badge/Explorium-B2B_Data-FF6B35?style=flat-square)](https://explorium.ai) ![MIT License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
+[![npm version](https://img.shields.io/npm/v/@vibeprospecting/vpai?style=flat-square&label=npm&color=CB3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/@vibeprospecting/vpai) [![npm downloads](https://img.shields.io/npm/dm/@vibeprospecting/vpai?style=flat-square&label=downloads&color=22c55e)](https://www.npmjs.com/package/@vibeprospecting/vpai) [![Claude Code](https://img.shields.io/badge/Claude_Code-compatible-7C3AED?style=flat-square&logo=anthropic&logoColor=white)](https://claude.ai/code) [![Anthropic Community Marketplace](https://img.shields.io/badge/Anthropic_Community_Marketplace-listed-7C3AED?style=flat-square&logo=anthropic&logoColor=white)](https://github.com/anthropics/claude-plugins-community) ![MCP Plugin](https://img.shields.io/badge/MCP-plugin-0052CC?style=flat-square) [![Explorium](https://img.shields.io/badge/Explorium-B2B_Data-FF6B35?style=flat-square)](https://explorium.ai) ![MIT License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
+
+> Listed in the official **[Anthropic Community Marketplace](https://github.com/anthropics/claude-plugins-community)** — reviewed and approved by Anthropic for Claude Code users.
 
 [Getting started](#getting-started) · [Core capabilities](#core-capabilities) · [Use cases and example workflows](#use-cases-and-example-workflows) · [Claude Code and Codex](#using-vibe-prospecting-with-claude-code-and-codex) · [Tool reference](#tool-reference) · [vibeprospecting.ai ↗](https://vibeprospecting.ai)
 
@@ -30,7 +32,14 @@ npx skills add explorium-ai/vibeprospecting-plugin --all
 
 Pick the guide that matches where you run the plugin (each file covers setup for that product only):
 
-- **If you use [Claude Code](https://claude.ai/code)** — follow **[`docs/install-claude-code.md`](docs/install-claude-code.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
+- **If you use [Claude Code](https://claude.ai/code)** — install from the [Anthropic Community Marketplace](https://github.com/anthropics/claude-plugins-community):
+
+  ```bash
+  claude plugin marketplace add anthropics/claude-plugins-community
+  claude plugin install vibe-prospecting@claude-community
+  ```
+
+  Then complete **[Authenticate](#authenticate)** below before calling tools.
 - **If you use [OpenAI Codex](https://developers.openai.com/codex/plugins)** — follow **[`docs/install-codex.md`](docs/install-codex.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
 
 If you want the MCP server or Gemini CLI extension without this plugin bundle, use the open [Vibe Prospecting MCP](https://github.com/explorium-ai/vibeprospecting-mcp) repository.
@@ -298,7 +307,7 @@ Full parameter documentation is in [`skills/vibe-prospecting/SKILL.md`](skills/v
 
 | Issue | Likely cause | Resolution |
 | --- | --- | --- |
-| Plugin not recognized in Claude Code | Installation not complete | Follow [`docs/install-claude-code.md`](docs/install-claude-code.md) |
+| Plugin not recognized in Claude Code | Installation not complete | Re-run the install commands from [Getting started — Install](#install), then restart Claude Code |
 | Plugin not recognized in Codex | Installation not complete | Follow [`docs/install-codex.md`](docs/install-codex.md) |
 | Authentication error | Expired session or missing key | Re-run [Authenticate](#authenticate) |
 | Empty results | Filters too narrow or no matches | Broaden ICP criteria or reduce required filters |
