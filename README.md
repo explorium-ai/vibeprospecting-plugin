@@ -24,13 +24,26 @@ Instead of using Claude only for one-off chat exploration, GTM teams and AI agen
 
 ### Install
 
-Install from [skills.sh](https://skills.sh/explorium-ai/vibeprospecting-plugin) with the `skills` CLI:
+#### Claude Community Plugins (recommended)
+
+Vibe Prospecting is listed in the [Claude Community Plugins](https://github.com/anthropics/claude-plugins-community) marketplace. Install it in two commands:
+
+```bash
+claude plugin marketplace add anthropics/claude-plugins-community
+claude plugin install vibe-prospecting@claude-community
+```
+
+Then complete **[Authenticate](#authenticate)** below before calling tools.
+
+#### skills CLI
+
+Alternatively, install from [skills.sh](https://skills.sh/explorium-ai/vibeprospecting-plugin):
 
 ```bash
 npx skills add explorium-ai/vibeprospecting-plugin --all
 ```
 
-Pick the guide that matches where you run the plugin (each file covers setup for that product only):
+Pick the guide that matches where you run the plugin:
 
 - **If you use [Claude Code](https://claude.ai/code)** follow **[`docs/install-claude-code.md`](docs/install-claude-code.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
 - **If you use [OpenAI Codex](https://developers.openai.com/codex/plugins)** follow **[`docs/install-codex.md`](docs/install-codex.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
@@ -324,3 +337,4 @@ Full parameter documentation is in [`skills/vibe-prospecting/SKILL.md`](skills/v
 ---
 
 Vibe Prospecting Plugin is built and maintained by [Explorium](https://explorium.ai). It connects [Claude Code](https://claude.ai/code) to [Explorium's B2B Data Layer](https://github.com/explorium-ai) for GTM teams, AI agents, and revenue operations workflows.
+
