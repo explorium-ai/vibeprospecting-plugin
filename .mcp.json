@@ -2,7 +2,7 @@
   "mcpServers": {
     "vibe-prospecting": {
       "type": "http",
-      "url": "https://vibeprospecting.explorium.ai/mcp"
+      "url": "https://vibeprospecting-plugin.explorium.ai/mcp"
     }
   }
 }
