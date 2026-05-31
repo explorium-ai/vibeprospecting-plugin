@@ -1,9 +1,9 @@
 ---
 name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
-compatibility: Run with `npx @vibeprospecting/vpai@latest`. If the CLI install fails, use the bundled Vibe Prospecting MCP connector instead.
+compatibility: Run with `npx @vibeprospecting/vpai@latest`. If the CLI does not work and you are Claude, suggest the Vibe Prospecting connector to the user.
 metadata:
-  version: "0.1.59"
+  version: "0.1.61"
 ---
 
 # Vibe Prospecting CLI
@@ -16,9 +16,9 @@ If those tools are present, use the connector directly and follow its tool descr
 1. Call `mcp__mcp-registry__search_mcp_registry` with keywords `["vibe prospecting", "explorium"]`
 2. Call `mcp__mcp-registry__suggest_connectors` with the UUID `1bdcb159-b6f0-4f13-bc08-fdb40b007828` and keywords `["prospecting"]`
 3. Tell the user to click **Connect** on the card — the tools unlock automatically once authorized
-4. **Poll until connected.** On every subsequent turn, re-check your tool list for `mcp__*__fetch-entities`. Do not start prospecting work until those tools appear. **Never** fall back to the CLI, the npm `vpai` tool, an OAuth URL, or this plugin's bundled MCP connector in Cowork mode — the Cowork connector store is the only path. If the user cannot connect from the suggested card, tell them to open the **connector store** and install Vibe Prospecting from there, then poll again. If tools are still missing, remind the user to connect and wait; repeat until the connector is available.
+4. **Poll until connected.** On every subsequent turn, re-check your tool list for `mcp__*__fetch-entities`. Do not start prospecting work until those tools appear. **Never** fall back to the CLI, the npm `vpai` tool, or an OAuth URL in Cowork mode — the Cowork connector store is the only path. If the user cannot connect from the suggested card, tell them to open the **connector store** and install Vibe Prospecting from there, then poll again. If tools are still missing, remind the user to connect and wait; repeat until the connector is available.
 
-**If the CLI install fails** outside Cowork mode (e.g. `npx` unavailable, sandboxed environment, permission denied), use the bundled Vibe Prospecting MCP connector instead and follow its own tool descriptions and schemas. The rest of this file is CLI-only. In Cowork mode, never use that fallback — use the connector store flow above.
+**If the CLI does not work** outside Cowork mode (e.g. `npx` unavailable, sandboxed environment, permission denied), and you are Claude, suggest the Vibe Prospecting connector to the user. The rest of this file is CLI-only. In Cowork mode, use the connector store flow above.
 
 ## Hard Rules
 
@@ -177,7 +177,7 @@ npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type
 
 | Error | Solution |
 |-------|----------|
-| CLI install fails (`npx` unavailable, sandbox, permission denied) | Switch to the bundled Vibe Prospecting MCP connector and follow its tool descriptions; the rest of this file no longer applies. |
+| CLI does not work (`npx` unavailable, sandbox, permission denied) | If you are Claude, suggest the Vibe Prospecting connector to the user; the rest of this file no longer applies. |
 | Auth / 401 | Run Auth section above; if mount fails, follow [`login.md`](references/login.md) |
 | Missing **`session_id`** in JSON / CLI refuses to chain | The MCP must return **`session_id`**; ensure you target production **`https://vp-plugin.explorium.ai/mcp`** (embedded in the npm CLI). Pass **`--session-id`** with that exact string on the next step. |
 | Wrong rows used when chaining | Pass **`--table-name`** matching the prior step's **`table_name`**. |
