@@ -46,7 +46,7 @@ If you want the MCP server or Gemini CLI extension without this plugin bundle, u
 
 ### Authenticate
 
-Before running any tool, sign in with your Explorium account. Authentication is OAuth-based; there is no API key to copy manually for normal local use.
+Before running any tool, sign in with your Vibe prospecting account. Authentication is OAuth-based; there is no API key to copy manually for normal local use.
 
 **First time — log in through the browser:**
 
@@ -296,7 +296,7 @@ Full parameter documentation is in [`skills/vibe-prospecting/SKILL.md`](skills/v
 
 ## Security, authentication, and data handling
 
-- Authentication is handled through your [Explorium account](https://explorium.ai). No credentials are stored locally by the plugin.
+- Authentication is handled through your [Vibe prospecting](https://www.vibeprospecting.ai/) account. No credentials are stored locally by the plugin.
 - All data queries are routed through Explorium's API infrastructure. Data is subject to [Explorium's data terms](https://explorium.ai) and your account permissions.
 - Do not include raw API keys or credentials in prompts or exported files.
 - For enterprise data handling, compliance, and DPA questions, contact [Explorium](https://explorium.ai).
