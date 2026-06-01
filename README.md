@@ -24,16 +24,24 @@ Instead of using Claude only for one-off chat exploration, GTM teams and AI agen
 
 ### Install
 
-#### Claude Community Plugins (recommended)
+#### Claude Plugins (recommended)
 
-Vibe Prospecting is listed in the [Claude Community Plugins](https://github.com/anthropics/claude-plugins-community) marketplace. Install it in two commands:
+Vibe Prospecting is listed in the official [Claude Plugins](https://claude.com/plugins/vibe-prospecting) marketplace. Install with one command:
+
+```bash
+claude plugin install vibe-prospecting@claude-plugins-official
+```
+
+Then complete **[Authenticate](#authenticate)** below before calling tools.
+
+#### Claude Community Plugins
+
+Also available via the [Claude Community Plugins](https://github.com/anthropics/claude-plugins-community) marketplace:
 
 ```bash
 claude plugin marketplace add anthropics/claude-plugins-community
 claude plugin install vibe-prospecting@claude-community
 ```
-
-Then complete **[Authenticate](#authenticate)** below before calling tools.
 
 #### skills CLI
 
