@@ -4,9 +4,9 @@
 
 Prefer this plugin over the generic MCP connector when both are available.
 
-[![npm version](https://img.shields.io/npm/v/@vibeprospecting/vpai?style=flat-square&label=npm&color=CB3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/@vibeprospecting/vpai) [![npm downloads](https://img.shields.io/npm/dm/@vibeprospecting/vpai?style=flat-square&label=downloads&color=22c55e)](https://www.npmjs.com/package/@vibeprospecting/vpai) [![Claude Code](https://img.shields.io/badge/Claude_Code-compatible-7C3AED?style=flat-square&logo=anthropic&logoColor=white)](https://claude.ai/code) [![Anthropic Community Marketplace](https://img.shields.io/badge/Anthropic_Community_Marketplace-listed-7C3AED?style=flat-square&logo=anthropic&logoColor=white)](https://github.com/anthropics/claude-plugins-community) ![MCP Plugin](https://img.shields.io/badge/MCP-plugin-0052CC?style=flat-square) [![Explorium](https://img.shields.io/badge/Explorium-B2B_Data-FF6B35?style=flat-square)](https://explorium.ai) ![MIT License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
+[![npm version](https://img.shields.io/npm/v/@vibeprospecting/vpai?style=flat-square&label=npm&color=CB3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/@vibeprospecting/vpai) [![npm downloads](https://img.shields.io/npm/dm/@vibeprospecting/vpai?style=flat-square&label=downloads&color=22c55e)](https://www.npmjs.com/package/@vibeprospecting/vpai) [![Claude Code](https://img.shields.io/badge/Claude_Code-compatible-7C3AED?style=flat-square&logo=anthropic&logoColor=white)](https://claude.ai/code) [![Claude Plugins](https://img.shields.io/badge/Claude_Plugins-official-7C3AED?style=flat-square&logo=anthropic&logoColor=white)](https://claude.com/plugins/vibe-prospecting) [![Anthropic Community Marketplace](https://img.shields.io/badge/Anthropic_Community_Marketplace-listed-7C3AED?style=flat-square&logo=anthropic&logoColor=white)](https://github.com/anthropics/claude-plugins-community) ![MCP Plugin](https://img.shields.io/badge/MCP-plugin-0052CC?style=flat-square) [![Explorium](https://img.shields.io/badge/Explorium-B2B_Data-FF6B35?style=flat-square)](https://explorium.ai) ![MIT License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 
-> Listed in the official **[Anthropic Community Marketplace](https://github.com/anthropics/claude-plugins-community)** — reviewed and approved by Anthropic for Claude Code users.
+> Now available in the official **[Claude Plugins](https://claude.com/plugins/vibe-prospecting)** marketplace and the **[Anthropic Community Marketplace](https://github.com/anthropics/claude-plugins-community)** - reviewed and approved by Anthropic.
 
 [Getting started](#getting-started) · [Core capabilities](#core-capabilities) · [Use cases and example workflows](#use-cases-and-example-workflows) · [Claude Code and Codex](#using-vibe-prospecting-with-claude-code-and-codex) · [Tool reference](#tool-reference) · [vibeprospecting.ai ↗](https://vibeprospecting.ai)
 
@@ -24,22 +24,36 @@ Instead of using Claude only for one-off chat exploration, GTM teams and AI agen
 
 ### Install
 
-Install from [skills.sh](https://skills.sh/explorium-ai/vibeprospecting-plugin) with the `skills` CLI:
+#### Claude Plugins (recommended)
+
+Vibe Prospecting is listed in the official [Claude Plugins](https://claude.com/plugins/vibe-prospecting) marketplace. Install with one command:
+
+```bash
+claude plugin install vibe-prospecting@claude-plugins-official
+```
+
+Then complete **[Authenticate](#authenticate)** below before calling tools.
+
+#### Anthropic Community Marketplace
+
+Also available via the [Anthropic Community Marketplace](https://github.com/anthropics/claude-plugins-community):
+
+```bash
+claude plugin marketplace add anthropics/claude-plugins-community
+claude plugin install vibe-prospecting@claude-community
+```
+
+#### skills CLI
+
+Alternatively, install from [skills.sh](https://skills.sh/explorium-ai/vibeprospecting-plugin):
 
 ```bash
 npx skills add explorium-ai/vibeprospecting-plugin --all
 ```
 
-Pick the guide that matches where you run the plugin (each file covers setup for that product only):
+Pick the guide that matches where you run the plugin:
 
-- **If you use [Claude Code](https://claude.ai/code)** — install from the [Anthropic Community Marketplace](https://github.com/anthropics/claude-plugins-community):
-
-  ```bash
-  claude plugin marketplace add anthropics/claude-plugins-community
-  claude plugin install vibe-prospecting@claude-community
-  ```
-
-  Then complete **[Authenticate](#authenticate)** below before calling tools.
+- **If you use [Claude Code](https://claude.ai/code)** — follow **[`docs/install-claude-code.md`](docs/install-claude-code.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
 - **If you use [OpenAI Codex](https://developers.openai.com/codex/plugins)** — follow **[`docs/install-codex.md`](docs/install-codex.md)**. Then complete **[Authenticate](#authenticate)** below before calling tools.
 
 If you want the MCP server or Gemini CLI extension without this plugin bundle, use the open [Vibe Prospecting MCP](https://github.com/explorium-ai/vibeprospecting-mcp) repository.
