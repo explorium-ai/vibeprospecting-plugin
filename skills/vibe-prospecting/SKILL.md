@@ -3,7 +3,7 @@ name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
 compatibility: Run with `npx @vibeprospecting/vpai@latest`. If the CLI does not work and you are Claude, suggest the Vibe Prospecting connector to the user.
 metadata:
-  version: "0.1.61"
+  version: "0.1.62"
 ---
 
 # Vibe Prospecting CLI
