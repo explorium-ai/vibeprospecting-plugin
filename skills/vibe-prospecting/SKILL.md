@@ -177,9 +177,13 @@ npx @vibeprospecting/vpai@latest fetch-entities-statistics --args '{"entity_type
 
 | Error | Solution |
 |-------|----------|
-| CLI does not work (`npx` unavailable, sandbox, permission denied) | If you are Claude, suggest the Vibe Prospecting connector to the user; the rest of this file no longer applies. |
-| Auth / 401 | Run Auth section above; if mount fails, follow [`login.md`](references/login.md) |
-| Missing **`session_id`** in JSON / CLI refuses to chain | The MCP must return **`session_id`**; ensure you target production **`https://vp-plugin.explorium.ai/mcp`** (embedded in the npm CLI). Pass **`--session-id`** with that exact string on the next step. |
+| CLI install fails (`npx` unavailable, sandbox, permission denied) | Switch to the bundled Vibe Prospecting MCP connector and follow its tool descriptions; the rest of this file no longer applies. |
+| Auth / 401 (Claude Code / Cowork) | Run Auth section above; if mount fails, follow [`login.md`](references/login.md) |
+| Auth / 401 (OpenClaw) | Run `npx @vibeprospecting/vpai@latest login` then `login --poll`. Or set `VP_API_KEY`. Restart gateway after. See Auth section above. |
+| `Not authenticated` (OpenClaw) | Neither `~/.config/vpai/config.json` nor `VP_API_KEY` env var is present. Follow the OpenClaw Auth section. |
+| Plugin not showing tools in OpenClaw | Run `openclaw plugins list` — confirm `vpai` is listed. Re-install if needed: `openclaw plugins install ./vpai-plugin`. |
+| Tools missing after OpenClaw install | Gateway must restart: `openclaw gateway restart`. |
+| Missing **`session_id`** in JSON / CLI refuses to chain | The MCP must return **`session_id`**; ensure you target production **`https://vibeprospecting.explorium.ai/mcp`** (embedded in the npm CLI). Pass **`--session-id`** with that exact string on the next step. |
 | Wrong rows used when chaining | Pass **`--table-name`** matching the prior step's **`table_name`**. |
 | **`enrich-*` or `fetch-*-events` with `--session-id` but no `--table-name`** | **`--table-name`** is required for **`enrich-business`**, **`enrich-prospects`**, **`fetch-businesses-events`**, and **`fetch-prospects-events`** whenever you pass **`--session-id`**. |
 | Empty results | Check filter values; run `autocomplete` for controlled-vocab fields; re-check the relevant live **input** schema with `<tool> --all-parameters` |

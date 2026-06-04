@@ -1,0 +1,8 @@
+{
+  "id": "vpai-plugin",
+  "name": "Vibe Prospecting",
+  "description": "B2B company and contact intelligence — search 150M+ companies, 800M+ professionals. Build lead lists, enrich contacts, track business events.",
+  "skills": ["./skills"],
+  "activation": { "onStartup": false },
+  "configSchema": { "type": "object", "additionalProperties": false, "properties": {} }
+}
