@@ -5,63 +5,23 @@ description: Size the total addressable market (TAM) for an Ideal Customer Profi
 
 # Market Sizing
 
-Iteratively refine a company-level ICP filter set and return a count plus a structured filter artifact ready for downstream prospecting work. Each pass returns a count, a banded sizing read, optional sample views for sanity-check, and concrete refinement options. Terminates when the user finalizes.
+Iteratively refine a company-level ICP filter set and return a count plus a structured filter artifact ready for downstream prospecting work.
 
 ## Input
 
-- ICP description (recommended): natural language, or "my ICP" / "our ICP" / nothing (ask the user to describe it).
-- Use case (optional): territory design / investor sizing / ICP sharpening (default).
-- SAM hypothesis inputs (optional): `addressable_fraction` (0 to 1) and `arpa_usd`.
+- ICP description (recommended): natural language, or "my ICP" / "our ICP" / nothing (ask).
+- Use case (optional): territory design, investor sizing, ICP sharpening (default).
+- SAM hypothesis inputs (optional): addressable fraction (0 to 1) and ARPA in USD.
 
 ## Workflow
 
-### 1. Parse the ICP into filter dimensions
-Reconcile user text into Explorium filter fields. Tag every dimension as `user-specified` or `unspecified`. Persona criteria like "CTOs" or "VP Sales" are recorded but NOT applied to the company count, since they describe who you sell into, not who the account is. Persona discovery belongs to a prospect-side skill once the filter set is settled.
-
-### 2. Disambiguate ambiguous regions BEFORE the count
-- "EU" can mean European Union member states or the broader European region. Ask one clarifying question if unclarified.
-- "Americas" vs "North America" vs "US and Canada": confirm if uncertain.
-- Note that `company_country_code` and `company_region_country_code` are mutually exclusive on the same query.
-
-### 3. Resolve free-text values via autocomplete (mandatory)
-For every value that targets one of these fields, call `autocomplete` first and use only resolved values:
-- `linkedin_category` (LinkedIn industry taxonomy)
-- `naics_category` (NAICS codes)
-- `company_tech_stack_tech` (technographics)
-- `job_title` (persona, recorded only)
-- `business_intent_topics`
-- `city_region`
-
-Bucket and boolean fields do NOT need autocomplete: `company_country_code`, `company_region_country_code`, `company_size`, `company_revenue`, `company_age`, `job_level`, `job_department`, `has_email`, `is_public_company`, events.
-
-Mutually exclusive: `linkedin_category` vs `naics_category`. Pick one industry taxonomy per query.
-
-#### Taxonomy-gap gate (mandatory)
-For every industry term the user gives, call `autocomplete` against both `linkedin_category` and `naics_category` (separately, on different passes):
-- One or more matches: use the resolved value in the filter.
-- Zero matches in both taxonomies: surface "No matching industry value in Explorium's taxonomy for `<term>`." Recommend one of: (a) approximate with a related parent category and flag the approximation, (b) seed a known company and offer a lookalike-style follow-up, (c) explicit user confirmation to proceed with a tech-stack or intent proxy. Wait for confirmation.
-
-Tech-stack taxonomy-gap branch: if `company_tech_stack_tech` autocomplete returns zero clean matches after 2-3 query variants for a flagship vendor (Snowflake, Databricks, BigQuery, etc.), document this as a coverage gap rather than treating it as a sparsity-narrow result. The skill cannot size around a tech filter that has no taxonomy entry.
-
-### 4. Get the count
-Call `fetch-entities-statistics` with entity type `businesses` and the resolved filter set. This is the load-bearing tool; it returns the total count for the filter set without paging sample rows. Capture the number as `count_filtered`.
-
-Country-scoped TAM caveat (load-bearing): `fetch-entities-statistics` does NOT strictly enforce the `company_country_code` filter. `total_results` in the response is the GLOBAL count for the non-country filters; the per-country count is in `stats.business_categories_per_location[<category>][<country>]`. For any country-scoped TAM use the per-location breakdown, NEVER `total_results`. Sum across the requested ISO-2 codes in the per-location map to get the operative country-scoped count.
-
-#### Data-sparsity probe (mandatory when tech_stack or intent filters applied)
-Explorium coverage of `company_tech_stack_tech` and `business_intent_topics` is sparse in some segments. A filter collapsing the count to 0 may be a coverage gap, not a narrow ICP.
-
-1. Run `fetch-entities-statistics` with the filter (`count_filtered`).
-2. Run `fetch-entities-statistics` again without the tech-stack or intent filter, all other filters intact (`count_unfiltered`).
-3. If `count_filtered / count_unfiltered < 0.1` (filter drops more than 90 percent):
-   - Treat as coverage-sparse, not narrow ICP.
-   - Use `count_unfiltered` as the operative TAM for banding.
-   - Surface "Explorium coverage of [field] is sparse for this segment. Filtered: X. Operative TAM: Y (unfiltered)."
-4. Otherwise `count_filtered` is the operative TAM.
-
-Both numbers always shown.
-
-### 5. Classify the sizing band
+1. Parse the ICP into filter dimensions. Tag each user-specified or unspecified. Persona criteria ("CTOs", "VP Sales") are recorded but NOT applied to the company count.
+2. Disambiguate ambiguous regions BEFORE counting. "EU" can mean European Union members or the broader European region: ask one clarifying question. Same for "Americas" vs "North America" vs "US and Canada".
+3. Discover canonical values for every free-text field (industry, technology, intent topic, city). Industry taxonomy is mutually exclusive: pick LinkedIn industry OR NAICS per pass. For any industry term with zero matches in either taxonomy, surface a "no matching value" message and offer: approximate with a related parent and flag it, seed a known company for a lookalike follow-up, or proceed with a tech-stack or intent proxy on explicit confirmation.
+4. Tech-stack taxonomy-gap branch: if a flagship vendor (Snowflake, Databricks, BigQuery) returns zero clean matches after 2-3 query variants, document this as a coverage gap, not a sparsity-narrow result. The skill cannot size around a tech filter with no taxonomy entry.
+5. Size the audience. Get the total count for the resolved filter set. Country-scoped TAM caveat: the sizing endpoint does NOT strictly enforce country filters at the headline-count level. For any country-scoped TAM, sum the per-location breakdown across requested ISO-2 codes. Never use the global headline count when the user asked for a specific geography.
+6. Data-sparsity probe (mandatory when tech-stack or intent filters are applied). Size twice: with the filter (count_filtered) and without it (count_unfiltered). If count_filtered / count_unfiltered is below 0.1, treat as coverage-sparse and use count_unfiltered as the operative TAM. Surface "Explorium coverage of [field] is sparse for this segment." Show both numbers.
+7. Classify the sizing band against the operative TAM.
 
 | Operative TAM | Band | Read |
 |---|---|---|
@@ -71,123 +31,27 @@ Both numbers always shown.
 | 250 to 1,000 | Tight/niche | Flag capacity feasibility. |
 | < 250 | Too narrow | Coverage risk; suggest widening. |
 
-### 6. Optional sanity-check sample (skip when TAM > 50,000)
-Only when the user wants visual confirmation of fit, call `fetch-entities` with entity type `businesses`, the same filter set, and a page size of 25. Use it for:
-- ICP sanity check: do the top names look like the ICP, or contain conglomerate / BPO / staffing noise?
-- Geographic and sub-industry shape: directional only.
-- Noise-rate estimation: count rows in the top 25 that visibly don't match the ICP. Rate = `noisy_rows / 25`.
-
-`fetch-entities` does not support sort, so this sample is NOT a ranked or revenue-skewed view; treat it as a directional slice only. Do not compute employee-band or revenue-band percentages from this sample.
-
-#### Noise-adjusted TAM (mandatory when sample noise is at least 20 percent)
-- `tam_noise_adjusted = round(count_operative × (1 − noise_rate), 2 sig figs)`.
-- Re-classify the band against `tam_noise_adjusted`.
-- Cite specific noisy rows ("of top 25, 6 are wineries or solar installers").
-- Report order: raw count → noise rate → adjusted TAM → band.
-
-20 to 60 percent noise is common when an industry term resolves loosely; treat it as a stronger signal to revisit the filter set than to ship the count.
-
-### 7. SAM hypothesis (only if both inputs supplied)
-- SAM count = operative TAM × `addressable_fraction`
-- SAM revenue = SAM count × `arpa_usd`
-- Label clearly: Hypothesis, not forecast.
-
-### 8. Self-check before output
-- Headline count rounded to no more than 2 significant figures.
-- Taxonomy-gap gate cleared for every industry term, or user explicitly approved a proxy.
-- Data-sparsity probe run when tech-stack or intent filters were applied.
-- Noise-adjusted TAM computed when sample noise was at least 20 percent.
-- Every unspecified dimension flagged.
-- Persona criteria marked "not applied to company TAM."
-- Region disambiguation resolved.
-- Refinement options name a specific dimension and an estimated post-refinement count.
-
-### 9. Present refinement options and loop
-- Too broad (>50k): two or three narrowing options with estimated impact.
-- Too narrow (<250): two or three widening options.
-- Healthy band: tier segmentation or finalize.
-- Always offer a "save filters" exit so downstream skills can consume the artifact.
-
-Re-run from step 3 when filters change. Surface the filter-set diff each pass. Terminate on finalize or hand-off.
+8. Sample entities for sanity-check (skip when TAM > 50,000). Pull ~25 rows matching the filter set. Use for: ICP sanity (do top names look right, or include conglomerate / BPO / staffing noise?), directional geography and sub-industry shape, noise-rate estimation. The sample is unsorted: directional, not ranked. Do not compute employee or revenue percentages from it.
+9. Noise-adjusted TAM (mandatory when sample noise is at least 20 percent). Compute `adjusted = round(operative_TAM x (1 - noise_rate), 2 sig figs)`. Re-classify the band against the adjusted number. Cite specific noisy rows. 20-60 percent noise signals revisiting the filter set, not shipping the count.
+10. SAM hypothesis (only if both inputs supplied). SAM count = operative TAM x addressable fraction. SAM revenue = SAM count x ARPA. Label clearly: hypothesis, not forecast.
+11. Self-check: headline rounded to at most 2 sig figs; taxonomy gate cleared; sparsity probe and noise adjustment run when applicable; unspecified dimensions flagged; persona criteria marked "not applied to company TAM"; region disambiguation resolved; refinement options name a specific dimension and an estimated post-refinement count.
+12. Present refinement options and loop. Too broad: 2-3 narrowing options with estimated impact. Too narrow: 2-3 widening options. Healthy band: tier segmentation or finalize. Always offer a "save filters" exit so downstream skills can consume the artifact. Re-run from step 3 when filters change and surface the diff. Terminate on finalize.
 
 ## Output Format
 
-### TL;DR: Market Sizing for [ICP one-liner] · Pass [N]
-
-Use case: [restate].
-
-Headline. ~[count] companies. Band: [too broad / healthy / sweet spot / tight / too narrow].
-
-If data-sparsity probe fired: `Raw filtered: X · Unfiltered: Y · Operative TAM: Y (filter is coverage-sparse).`
-
-If noise-adjusted: `Raw: A · Sample noise: ~B% · Noise-adjusted: C` (band classified against C).
-
-Read. [1 to 2 sentences: operational? dominant skew? most consequential refinement?]
-
-This pass's filter diff: [for pass N>1]
-
-### Filters Applied
-
-| Dimension | Filter field | Value | Source |
-|---|---|---|---|
-
-`Source` legend: `user-specified` · `unspecified` · `approximation`. Persona criteria flagged "NOT applied to company TAM."
-
-### Sample Accounts (optional, only if requested and TAM <= 50,000)
-
-Up to 25 rows from `fetch-entities`. Unsorted slice, directional only.
-
-| # | Company | Industry | Size bucket | Country |
-
-Sanity check. Do these look like the ICP, or include conglomerate / BPO / staffing noise? If noise, name the specific narrowing filter that removes it.
-
-### Sizing Band & Refinement
-
-Band: [label].
-Why this band. [1 to 2 sentences on count and operational implication.]
-Refinement options:
-1. [Dimension change + estimated post-refinement count]
-2. [Alternative]
-3. [Optional]
-
-Or: finalize and hand off the filter set.
-
-### SAM Hypothesis (only if both inputs supplied)
-
-Hypothesis, not forecast.
-
-| Metric | Value |
-|---|---|
-| TAM count | |
-| Addressable fraction | |
-| SAM count | |
-| ARPA (USD) | |
-| SAM revenue | |
-
-### Final Filter Set (on finalize)
-
-```json
-{
-  "filters": {
-    "linkedin_category": {"values": ["..."], "negate": false},
-    "company_size": {"values": ["..."], "negate": false},
-    "company_revenue": {"values": ["..."], "negate": false},
-    "company_country_code": {"values": ["..."], "negate": false},
-    "company_tech_stack_tech": {"values": ["..."], "negate": false},
-    "business_intent_topics": {"values": ["..."], "negate": false}
-  },
-  "_meta": {"tam_count": 0, "band": "...", "pass_count": 0, "use_case": "..."}
-}
-```
+- TL;DR: use case restated; headline `~[count] companies`; band label. If the sparsity probe fired, show raw filtered, unfiltered, and operative TAM. If noise-adjusted, show raw, noise rate, adjusted, and the band classified against the adjusted number. 1-2 sentences on operational viability, dominant skew, most consequential refinement.
+- Filters Applied: dimension, value, and source (user-specified, unspecified, approximation). Persona criteria flagged "NOT applied to company TAM."
+- Sample Accounts (optional, only when requested and TAM <= 50,000): up to 25 unsorted rows. Sanity check; name the narrowing filter that removes any noise.
+- Sizing Band & Refinement: band label, 1-2 sentences on operational implication, 2-3 refinement options each naming a dimension change and an estimated post-refinement count. Or finalize.
+- SAM Hypothesis (only if both inputs supplied): TAM count, addressable fraction, SAM count, ARPA, SAM revenue. Hypothesis, not forecast.
+- Final Filter Set (on finalize): structured artifact with resolved values for every applied dimension plus operative TAM, band, pass count, and use case.
 
 ## Limitations
 
-- Employee size and revenue are bucket filters only; exact-number cutoffs cannot be expressed.
-- `company_revenue` bucket distribution appears to be a deterministic employee-to-revenue heuristic, not real revenue data. 90%+ concentration in a single bucket for a tightly-scoped query is expected. Do not slice by `company_revenue` after locking `company_size` - the cut will be non-informative.
-- No native sort on `fetch-entities`, so sample views are directional slices, not ranked lists.
-- No metro-area taxonomy; geography resolves to country, region, or `city_region` (autocomplete).
-- No similar-companies tool inside this skill; a seed-account workflow belongs to a separate skill.
-- No sub-department job-function filter; persona refinement is recorded only, never applied to the company count.
-- No Inc / Fortune ranking filters; `is_public_company` is the only company-type boolean.
-- `linkedin_category` and `naics_category` are mutually exclusive on the same query; pick one taxonomy per pass.
-- `company_country_code` and `company_region_country_code` are mutually exclusive on the same query.
+- Size and revenue are bucket filters; exact cutoffs cannot be expressed. Revenue buckets appear to be a deterministic employee-to-revenue heuristic, not real revenue data. 90%+ concentration in one bucket is expected; do not slice revenue after locking size.
+- No native sort on entity fetch; samples are directional, not ranked.
+- No metro taxonomy; geography resolves to country, region, or city autocomplete.
+- No similar-companies tool inside this skill; seed-account workflows belong elsewhere.
+- No sub-department job-function filter; persona is recorded only, never applied to the company count.
+- No Inc / Fortune ranking filters; public-vs-private is the only company-type boolean.
+- Industry taxonomy (LinkedIn vs NAICS) and country code vs region-country code are each mutually exclusive on a single query.

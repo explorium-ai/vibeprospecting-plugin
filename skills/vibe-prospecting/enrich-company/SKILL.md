@@ -5,101 +5,65 @@ description: Pull a single company's full profile in Explorium. Accepts a domain
 
 # Enrich Company
 
-Resolve a single company to its Explorium business_id and return a complete profile across firmographics, tech, financials, funding, hiring, and contact coverage.
+Resolve a single company and return a complete profile across firmographics, tech, financials, funding, hiring, and contact coverage.
 
 ## Input
 
 The user will provide one of:
-- A domain (e.g. `stripe.com`, `https://stripe.com`)
+- A domain (e.g. `stripe.com`)
 - A company name (e.g. `Stripe`)
 - A known Explorium `business_id`
 
-Optional:
-- A specific area of focus (e.g. "just funding", "tech stack only"). If omitted, run the full profile.
+Optional: a specific area of focus (e.g. "just funding", "tech stack only"). If omitted, run the full profile.
 
 ## Workflow
 
-1. **Resolve to a business_id.**
-   - Domain input: call `match-business` with the domain. Use the returned `business_id` directly.
-   - Company name input: call `match-business` with the name. If the match is ambiguous or low-confidence, re-run `match-business` with the name plus any user-supplied tiebreakers (country, HQ city, domain hint). Surface the top 3 candidates (name, domain, country, headcount) and ask the user to pick before continuing. Do not use `company_name` as a filter on `fetch-entities`; it is not a valid filter field. `match-business` is the only resolution path for a name.
-   - business_id input: skip resolution and treat the value as the table seed.
-   - If nothing resolves, stop and tell the user no business matched; suggest re-trying with a domain.
-   - Sanity check after firmographics enrichment lands in step 3: if the resolved business_id's firmographics show a major-brand input but headcount is 1-50 and NAICS is `551114` (Corporate Managing Offices) or SIC is `Hotels and motels`, the match likely routed to a registered-agent shell entity. Re-try with the alternate domain (.so vs .com) or with the company name string. Do not proceed with the wrong business_id.
+1. **Resolve the company.** Match the business from the supplied domain, name, or id. If a name is ambiguous, re-match with user-supplied tiebreakers (country, HQ city, domain hint) and surface the top 3 candidates for a pick. If a `business_id` is given, treat it as already resolved. If nothing resolves, stop and suggest re-trying with a domain.
 
-2. **Stage the seed row.** All enrichment tools require `--session-id` and `--table-name`. Capture both from the `match-business` (or `fetch-entities`) response and reuse them for every enrich call below. The single resolved row is the table.
+2. **Domain-variant sanity check.** After firmographics land, if a major-brand input resolves to a row with headcount 1-50 and NAICS `551114` (Corporate Managing Offices) or SIC `Hotels and motels`, the match likely routed to a registered-agent shell. Re-try with the alternate domain or with the company name string before continuing.
 
-3. **Run the core profile bundle in chunked `enrich-business` calls (max 3 enrichments per call).** Pass `--session-id` and `--table-name` from step 2. Capture the new `table_name` returned in the response (a fresh `view_<hash>`); thread THAT new table forward into the next enrich/events/export call, NOT the original `match-business` table. Each enrich call produces a new view table; the original fetch/match table does not get the enrichment columns. `enrich-business` accepts at most 3 enrichments per call. Call in three batches:
-   - Call 1: `[firmographics, technographics, company-hierarchies]` (industry/headcount/HQ/type/firmo_ticker, detected tech stack, parent/subsidiaries).
-   - Call 2: `[funding-and-acquisitions, workforce-trends, strategic-insights]` (funding rounds, headcount trajectory, priorities).
-   - Call 3: `[company-ratings, competitive-landscape]` (third-party ratings, named competitors).
+3. **Enrich the core profile.** Run firmographics, technographics, company hierarchies, funding and acquisitions, workforce trends, strategic insights, company ratings, and competitive landscape on the resolved company.
 
-4. **Add financial-metrics with a date parameter.** `financial-metrics` requires `parameters.date` in ISO 8601 form (e.g. `2024-01-01T00:00`); use the first day of the current month (or the most recent month the user names). Call `enrich-business` again on the latest view-table from step 3 with `enrichments: financial-metrics` and the date parameter.
+4. **Add financial metrics.** Financial metrics require a reporting date. Default to the first day of the current month, or use the most recent month the user names, and state the assumption.
 
-5. **Count the addressable contact pool.** Call `fetch-entities-statistics` with `entity_type: prospects` and `filters.business_id.values: [<resolved business_id>]`. Note: `fetch-entities-statistics` does NOT support `--businesses-table-name`; that flag only works on `fetch-entities`. Scope stats with `filters.business_id.values` directly. This scopes prospect counts to the resolved company without enumerating rows. Record the total as "Contacts in Explorium".
+5. **Size the contact pool.** Get a total prospect count scoped to the resolved company. Record it as "Contacts in Explorium" so the user can decide whether to chase decision-makers next.
 
-6. **Optional focused mode.** If the user asked for one slice only (e.g. "just tech stack", "funding only"), skip the unrelated enrichments in steps 3 and 4 but still run steps 1, 2, and 5.
+6. **Focused mode.** If the user asked for one slice only (e.g. "just tech stack", "funding only"), run only the relevant enrichments in step 3 plus steps 1, 2, and 5.
 
-7. **Render the profile.** Use the output format below. Always include the `business_id` and `company_domain` so the user can chain into follow-up work (contact pulls, signals, hiring trends).
+7. **Render the profile** using the format below. Always surface `business_id` and `company_domain` so the user can chain into follow-up work.
 
 ## Output Format
 
-**[Company Name]** - [one-line description from strategic-insights or firmographics]
+**[Company Name]** : [one-line description from strategic insights or firmographics]
 
 | Field | Value |
 |-------|-------|
-| Website | company_domain |
-| Industry (LinkedIn) | linkedin_category |
-| Industry (NAICS) | naics_category |
-| Headcount Bucket | company_size |
-| Exact Headcount | headcount (if returned) |
-| Revenue Bucket | company_revenue |
-| Revenue Range | revenue_range (if returned) |
+| Website | domain |
+| Industry | LinkedIn or NAICS category |
+| Headcount | bucket plus exact count when present |
+| Revenue | bucket plus range when present |
 | HQ Location | city, region, country |
 | Company Type | public / private / subsidiary |
-| Ticker (if public) | firmo_ticker |
-| Phone | phone_number |
-| business_id | business_id |
+| Ticker | if public |
+| Phone | |
+| business_id | |
 
-**Corporate Structure**
-- Ultimate Parent: from company-hierarchies
-- Parent: from company-hierarchies
-- Subsidiaries: count and top names
-
-**Financials**
-- Reporting period: parameters.date
-- Key metrics from financial-metrics (revenue, growth, margin where present)
-
-**Funding & Acquisitions**
-- Total raised, last round (stage, amount, date, lead investor)
-- Recent acquisitions made or received
-
-**Workforce Trends**
-- Headcount now vs 6 / 12 / 24 months ago
-- Net hires last quarter, top hiring departments
-
-**Tech Stack** (technographics)
-- Group by category (CRM, analytics, infra, etc.), cap at top 15 named tools
-
-**Competitive Landscape**
-- Top named competitors and positioning notes
-
-**Strategic Insights**
-- 3-5 bullets summarizing recent direction, priorities, or signals
-
-**Ratings**
-- Glassdoor / G2 / review signals from company-ratings
-
-**Contact Coverage**
-- Contacts in Explorium: <count from fetch-entities-statistics>
-- Suggest next step: pull decision-makers with `fetch-entities entity_type: prospects --businesses-table-name <table>` filtered by `job_level` and `job_department`.
-
-Always show the `business_id` and `company_domain` at the top so they can be reused.
+**Corporate Structure**: ultimate parent, direct parent, subsidiary count and top names.
+**Financials**: reporting period plus key metrics (revenue, growth, margin where present).
+**Funding & Acquisitions**: total raised, last round (stage, amount, date, lead investor), recent acquisitions.
+**Workforce Trends**: headcount now vs 6 / 12 / 24 months ago, net hires last quarter, top hiring departments.
+**Tech Stack**: group by category (CRM, analytics, infra), cap at top 15 named tools.
+**Competitive Landscape**: top named competitors and positioning notes.
+**Strategic Insights**: 3-5 bullets on recent direction, priorities, or signals.
+**Ratings**: Glassdoor, G2, and other review signals when returned.
+**Contact Coverage**: total prospect count plus a suggested next step to pull decision-makers filtered by seniority and department.
 
 ## Limitations
 
-- `strategic-insights` and `challenges` enrichments are sourced from SEC 10-K filings; for private companies these will be all-null, and for public companies the data can be 12-18 months stale. Use `fetch-businesses-events`, `funding-and-acquisitions`, `workforce-trends`, and `linkedin-posts` for current-state signals.
-- Exact headcount and exact revenue are not always returned; `company_size` and `company_revenue` are bucketed values, not raw numbers.
-- No native "similar companies" tool. To approximate, take the resolved firmographics (linkedin_category or naics_category, company_size, company_country_code) and run `fetch-entities entity_type: businesses` with those filters, then enrich the result set.
-- Growth percentages depend on what `workforce-trends` returns; quarter-over-quarter and year-over-year deltas may be partial for smaller or private companies.
-- `financial-metrics` requires a `parameters.date`; if the user does not provide one, default to the current month and state the assumption.
-- Sub-industry granularity is limited to whichever taxonomy you filtered on (linkedin_category and naics_category are mutually exclusive in filters, though both can appear in the firmographics enrichment output).
+- Strategic insights and challenges are sourced from SEC 10-K filings: null for private companies, and 12-18 months stale for public ones. Use business events, funding, workforce trends, and LinkedIn posts for current-state signals.
+- Exact headcount and exact revenue are not always returned: bucket values are the floor.
+- No native "similar companies" tool. Approximate by reconstructing seed attributes and re-fetching with those filters (see the lookalike-accounts skill).
+- Quarter-over-quarter and year-over-year headcount deltas may be partial for smaller or private companies.
+- Financial metrics require a reporting date: default to current month and state the assumption.
+- High-profile executives at the resolved company often have suppressed contact data. If the user pivots to "who runs it", warn that professional emails for top execs are unreliable and recommend LinkedIn outreach for that tier.
+- Sub-industry granularity is limited to whichever taxonomy you filtered on (LinkedIn and NAICS categories are mutually exclusive as filters, though both can appear in firmographics output).
