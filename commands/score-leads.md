@@ -3,6 +3,6 @@ description: Gather the data needed to tier leads or cold contacts (mixed prospe
 argument-hint: <list of leads> against ICP <persona description>
 ---
 
-Read and follow `skills/vibe-prospecting/score-leads/SKILL.md` to handle this request. Use the Vibe Prospecting plugin tools (`autocomplete`, `match-business`, `match-prospects`, `fetch-entities`, `fetch-entities-statistics`, `enrich-business`, `enrich-prospects`, `fetch-businesses-events`, `fetch-prospects-events`) as the skill directs.
+Read and follow `skills/vibe-prospecting/score-leads/SKILL.md` to handle this request.
 
 User input: $ARGUMENTS
