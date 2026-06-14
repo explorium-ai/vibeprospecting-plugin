@@ -18,15 +18,31 @@ Optional: a specific area of focus (e.g. "just funding", "tech stack only"). If 
 
 ## Workflow
 
-1. **Resolve the company.** Match the business from the supplied domain, name, or id. If a name is ambiguous, re-match with user-supplied tiebreakers (country, HQ city, domain hint) and surface the top 3 candidates for a pick. If a `business_id` is given, treat it as already resolved. If nothing resolves, stop and suggest re-trying with a domain.
+1. **Resolve the company.** Match the business from the supplied domain, name, or id. If a `business_id` is given, treat it as already resolved. `match-business` returns one silent winner with no confidence score and no runner-up candidates — there is NO "top-N matches" API mode, so do not promise the user a 3-candidate pick the tool surface can't deliver.
+
+1a. **Confidence gate — when to stop and ask.** After match, before spending any further credits, run a deterministic confidence check. Stop and ask the user for a domain disambiguator if ANY of these hold:
+   - headcount 1-50 AND (NAICS in {`551114`, `561110`} OR SIC in {`Hotels and motels`, `Legal services`}) — almost always a registered-agent shell;
+   - resolved `firmo_name` does not contain a substring of the user-supplied string (case-insensitive);
+   - resolved domain root-label differs from the user-supplied domain by Levenshtein distance > 3;
+   - `firmo_country` or `firmo_website` is null.
+   Re-prompt: "Resolved to `<firmo_name>` (`<firmo_website>`, `<firmo_country>`). Is that the right company?" Do not invent alternates the API did not return.
 
 2. **Domain-variant sanity check.** After firmographics land, if a major-brand input resolves to a row with headcount 1-50 and NAICS `551114` (Corporate Managing Offices) or SIC `Hotels and motels`, the match likely routed to a registered-agent shell. Re-try with the alternate domain or with the company name string before continuing.
 
-3. **Enrich the core profile.** Run firmographics, technographics, company hierarchies, funding and acquisitions, workforce trends, strategic insights, company ratings, and competitive landscape on the resolved company.
+3. **Enrich the core profile with public/private branching.** The 10-K-derived enrichments (`strategic-insights`, `challenges`, `competitive-landscape`, `company-ratings`) are NULL for private companies and 12-18 months stale for public ones — running them blindly burns 2 credits/row per null section.
+
+   **Branch on firmographics first:**
+   - If `firmo_company_type` is `private` (or `firmo_ticker` is null), SKIP strategic-insights, challenges, competitive-landscape, and company-ratings. Synthesize the "Strategic Insights" output section from `fetch-businesses-events` (last 12 months) + funding history instead. Label the section header `Strategic Insights (signal-derived — no 10-K available)`.
+   - If `firmo_company_type` is `public` AND the last 10-K date is within 12 months: run all the 10-K enrichments normally.
+   - If `firmo_company_type` is `public` BUT the last 10-K date is more than 12 months ago: run them, but label the section `Strategic Insights (10-K dated YYYY-MM — supplement with recent events)`.
+
+   **Always run** (regardless of branch): firmographics, technographics, company hierarchies, funding-and-acquisitions, workforce-trends.
 
 4. **Add financial metrics.** Financial metrics require a reporting date. Default to the first day of the current month, or use the most recent month the user names, and state the assumption.
 
-5. **Size the contact pool.** Get a total prospect count scoped to the resolved company. Record it as "Contacts in Explorium" so the user can decide whether to chase decision-makers next.
+5. **Size the contact pool (current-employment scope).** Get a prospect count scoped to the resolved company. **Use the business domain (not `business_id`) as the scoping filter** — `business_id` on prospect searches returns *associated* people, including former employees whose latest experience still references this id, which inflates the coverage estimate. The domain-scoped count is closer to "current employees" semantics. Label the result `Contacts at this company (current employment)` to avoid implying former-employee inclusion. Note the underlying field caveat in the output: alumni leakage is a known data behavior (see Bug 11 in the API-bugs tracker).
+
+   **Enrichment chunking discipline.** Across step 3 plus this step plus any chained downstream enrichments, the per-session column count is bounded by SQLite (Bug 3). Run wide enrichments in two batches with a fresh session between them: **Batch A** — firmographics, technographics, hierarchies, ratings. **Batch B** — funding, workforce, strategic insights, competitive. Do not chain a 5th wide enrichment into the same session as Batch A or B.
 
 6. **Focused mode.** If the user asked for one slice only (e.g. "just tech stack", "funding only"), run only the relevant enrichments in step 3 plus steps 1, 2, and 5.
 
@@ -67,3 +83,7 @@ Optional: a specific area of focus (e.g. "just funding", "tech stack only"). If 
 - Financial metrics require a reporting date: default to current month and state the assumption.
 - High-profile executives at the resolved company often have suppressed contact data. If the user pivots to "who runs it", warn that professional emails for top execs are unreliable and recommend LinkedIn outreach for that tier.
 - Sub-industry granularity is limited to whichever taxonomy you filtered on (LinkedIn and NAICS categories are mutually exclusive as filters, though both can appear in firmographics output).
+- **`match-business` returns one silent winner with no confidence score and no runner-up candidates.** The confidence gate in step 1a (headcount + NAICS/SIC heuristics, Levenshtein name check, null `firmo_country`/`firmo_website`) is the operational substitute for the unimplementable "top 3 candidates" pattern. Do not invent alternates the API did not return.
+- **10-K-derived enrichments (strategic-insights, challenges, competitive-landscape, company-ratings) are null for private companies** and 12-18 months stale for public ones. The public/private branching in step 3 substitutes business events + funding history for private targets and labels the output section "Strategic Insights (signal-derived — no 10-K available)".
+- **Per-session column count is bounded by SQLite.** Running 5+ wide enrichments in one session triggers a column-count error (Bug 3). The two-batch enrichment discipline in step 3/5 (firmographics + technographics + hierarchies + ratings; reset; funding + workforce + strategic + competitive) is mandatory for full-profile runs.
+- **Contact-pool count uses domain-scoped, not `business_id`-scoped, prospect counts.** `business_id` on prospect searches returns *associated* people including former employees (Bug 11), which inflates coverage estimates. The domain-scoped count better approximates "current employees".

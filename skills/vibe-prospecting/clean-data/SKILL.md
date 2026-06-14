@@ -9,12 +9,30 @@ Per-row cleanup on a GTM list before any match or enrich call. Profile, standard
 
 ## Input
 
-`$ARGUMENTS` is a path to a CSV, Excel, or JSON file. Parse the user message for optional sub-inputs:
+`$ARGUMENTS` is a path to a CSV, Excel, or JSON file. Parse the user message into this canonical shape before starting the workflow:
 
-- Schema hints if column names are ambiguous: which column is company name, domain, email, phone, country.
-- Entity type: companies, contacts, or both. Default: infer from columns.
-- Whether to run an MX-record check on email domains (slower, requires DNS). Default: off.
-- Whether to produce a match-ready subset for downstream entity resolution. Default: no.
+```json
+{
+  "schema_hints": {
+    "company": "<col_name or null>",
+    "domain":  "<col_name or null>",
+    "email":   "<col_name or null>",
+    "phone":   "<col_name or null>",
+    "country": "<col_name or null>",
+    "name":    "<col_name or null>"
+  },
+  "default_country": "<ISO Alpha-2 or null>",
+  "entity_type": "companies | contacts | both | infer",
+  "mx_check": false,
+  "match_ready": false
+}
+```
+
+**Echo the parsed shape back to the user as the first log line** so they can correct any misreads before the workflow burns time on wrong column assumptions. Defaults: `entity_type=infer`, `mx_check=false`, `match_ready=false`, `default_country=null`. Field-specific behavior:
+- `schema_hints` — used to map source columns to canonical fields. Required when column names are ambiguous or non-English (`firma`, `kontakt`, `tel`, `land`).
+- `default_country` — flows into phone normalization (`phonenumbers` country hint) for rows where the country column is blank.
+- `mx_check` — adds DNS lookup per email domain (50-200ms/domain). Off by default.
+- `match_ready` — when true, also emit the `04_match_ready/` subset for downstream entity resolution.
 
 Example phrasings:
 
@@ -47,9 +65,9 @@ Example phrasings:
 
    - **Company name.** Strip legal suffixes (`Inc`, `LLC`, `Ltd`, `GmbH`, `S.A.`, `株式会社`) at end of string only. Use `cleanco` if available. Keep BOTH raw and normalized columns.
    - **Domain.** Strip protocol and `www`. Fold to the eTLD+1 via `tldextract`. Flag free-email providers and disposable domains separately.
-   - **Person name.** Parse with `nameparser`: honorifics, generational suffixes, credentials, particles. If confidence is low, store the raw string with a low-confidence flag.
+   - **Person name.** Parse with `nameparser`: honorifics, generational suffixes, credentials, particles. **Flag as low-confidence when ANY of the following:** (a) nameparser returns no first or no last; (b) the string contains CJK or Hangul characters; (c) the surname token matches a known surname-first list (`Wang`, `Li`, `Zhang`, `Liu`, `Chen`, `Yang`, `Zhao`, `Wu`, `Kim`, `Park`, `Lee`, `Choi`, `Jung`, `Nguyen`, `Tran`, `Le`, `Pham`, `Hoang`, `Yamada`, `Tanaka`, `Suzuki`, `Sato`) AND the input has only two whitespace-separated tokens — nameparser will silently invert family-first names like `Wang Xiaoming` or `Kim Min-jun`; (d) the string ends with a credential suffix (PhD, MD, Esq., CPA). **On low-confidence, store BOTH the nameparser interpretation AND the swapped interpretation** as `name_first` / `name_last` and `name_first_alt` / `name_last_alt`, so the downstream match step can try both orderings. Raw string is always preserved alongside.
    - **Phone.** Format to E.164 with `phonenumbers`. Hint country from the country column when available.
-   - **Country.** Map free-text to ISO Alpha-2 codes (`United States` to `US`, `UK` to `GB`, `Deutschland` to `DE`). Reusable downstream for country filters.
+   - **Country.** Use `pycountry` for canonical ISO 3166-1 lookup (common name + alpha2 + alpha3) plus a bundled `country_aliases.yaml` for non-English exonyms (`Deutschland`, `Allemagne`, `République française`, `中国`, `日本`). **Pre-strip non-alphanumeric characters before lookup** so `U.S.A.`, `U.S.`, `USA`, and `U S A` all collapse identically. Rows that don't match any canonical name or alias tag as `country_unresolved` (NOT `invalid`) so users can extend the aliases file. Reusable downstream for country filters.
    - **Address.** Use `libpostal` if installed. Country-aware parsing.
 
    Common mistake: overwriting the display column with the normalized version. Always keep raw alongside normalized.
@@ -95,3 +113,6 @@ A second CSV at `./04_match_ready/<input_name>_for_match.csv` containing only ro
 - Free-email providers (gmail, yahoo) are flagged but cannot be linked to a corporate identity from this skill alone. Pair with a prospect match (email + company) when needed.
 - Holding-company and subsidiary pitfalls are out of scope (`meta.com` vs `instagram.com` vs `whatsapp.com`). Resolve via company-hierarchies enrichment after matching.
 - If the input lacks a country column entirely, phone normalization defaults to a permissive parser and may mis-format short numbers. Provide a default country in the user message when possible.
+- Country lookup uses `pycountry` + the bundled `country_aliases.yaml`; unmatched rows tag as `country_unresolved` (NOT `invalid`) so users can extend the aliases file. Pre-strip non-alphanumeric characters before lookup so `U.S.A.` and `USA` collapse identically.
+- The Input section defines a canonical JSON shape (`schema_hints`, `default_country`, `entity_type`, `mx_check`, `match_ready`). The agent must echo the parsed shape back as the first log line so the user can correct misreads before the workflow runs.
+- Non-Western surname-first names (Chinese, Korean, Vietnamese, Japanese romanized) get parsed backwards by `nameparser` without a low-confidence flag. The expanded confidence heuristic in step 3 (CJK/Hangul detection, surname-first lookup, credential suffix) stores both interpretations as `name_first` / `name_last` and `name_first_alt` / `name_last_alt` so downstream match can try both orderings.
