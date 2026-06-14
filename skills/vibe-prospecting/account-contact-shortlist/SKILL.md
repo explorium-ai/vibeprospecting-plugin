@@ -23,7 +23,16 @@ The user provides:
 
 2. Enrich the resolved business with firmographics to anchor the output header (industry, size bucket, revenue bucket, HQ, public vs private).
 
-3. Translate the use case into a persona blueprint before any prospect fetch. Prospecting / default: broad buying-committee coverage across Sales, Marketing, RevOps, IT, and Product, weighted toward Director, VP, and C-level. Deal acceleration: economic buyer plus technical evaluator plus procurement, biased to C-level and VP in the relevant function, plus one Director-level champion. Renewal / expansion: existing product-owner functions plus an executive sponsor, including Manager and Director levels alongside VP+. Intersect any user-supplied seniority or function override with the blueprint and note dropped roles.
+3. Translate the use case into a persona blueprint before any prospect fetch.
+
+   **Bare query (no use case, no function override) — default to executives only.** When the user supplies only a company identifier ("contact shortlist for snowflake.com") with no use case, function, or persona hint, default to a tight executive cohort: C-suite (CEO, CFO, COO, CTO, CRO, CMO, CIO, CISO, Chief X Officer) + President + EVP. Return 5–10 names — under-specified intent maps more naturally to "who runs this place" than to a 25-row buying-committee spread. The signal-to-noise on a tight executive list is also much higher (every name is a real decision-maker; nothing to triage). Add a one-line nudge to the output: *"Want broader buying-committee coverage? Specify a use case (prospecting / deal acceleration / renewal-expansion) or function (sales / engineering / RevOps / security / finance)."*
+
+   **Explicit use case — apply the corresponding blueprint:**
+   - `prospecting` (explicit): broad buying-committee coverage across Sales, Marketing, RevOps, IT, and Product, weighted toward Director, VP, and C-level.
+   - `deal acceleration`: economic buyer + technical evaluator + procurement, biased to C-level and VP in the relevant function, plus one Director-level champion.
+   - `renewal / expansion`: existing product-owner functions plus an executive sponsor, including Manager and Director levels alongside VP+.
+
+   Intersect any user-supplied seniority or function override with the blueprint and note dropped roles.
 
 4. Discover canonical values for every free-text role or industry token before filtering. Combine a job-title filter with an explicit seniority constraint to keep matches tight: a title-only filter for "Vice President of Engineering" leaks non-VP rows, so intersect title with seniority.
 
@@ -74,3 +83,4 @@ Pick the top 5 to contact first with a one-line reason each, distinguishing entr
 - `match-business` returns one winner with no runner-up candidates or confidence score. "Show top 2-3 matches" is not API-supported. Workflow step 1 substitutes a domain-confirmation + firmographic-sanity-check pattern.
 - Many senior contacts have null `prospect_job_seniority_level`. Null-seniority rows bypass tight `job_level` filters; the title-pattern fallback in step 4 is required to enforce VP+ / Director+ cuts.
 - Shortlist size hard-caps at 100. Over-cap requests return 100 with an explicit note; never silently truncated.
+- **Bare-query default is executives only** (C-suite + President + EVP, 5–10 names), not the broader buying-committee spread. The earlier default ("prospecting buying-committee" on under-specified queries) was too broad for the most common bare-query intent ("who runs this place"). Users seeking the wider cohort must specify a use case or function explicitly. Tight executive cohorts also tenure-gate cleaner because the row count is small enough to verify every name.
