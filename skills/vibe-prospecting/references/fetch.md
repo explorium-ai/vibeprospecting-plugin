@@ -12,6 +12,8 @@ Use the examples below when the planned fetch call matches them. Before the firs
 - **Prospects at prior companies:** For `fetch-entities` with `entity_type: prospects` scoped to businesses from an earlier step, pass **`--session-id`**, **`--businesses-table-name`** (table containing those `business_id` rows), and optional **`--table-name`** only if you need to disambiguate.
 - **`--number-of-results N`** collects N rows across pages automatically. Omit for one raw page.
 
+> Personal data: contacts (emails, phones, profiles) are personal data. Only process/export records you are authorized to handle, minimize fields/volume, and follow the privacy guidance in SKILL.md.
+
 ## `fetch-entities` for businesses
 
 ```bash

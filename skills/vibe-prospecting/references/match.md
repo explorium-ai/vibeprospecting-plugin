@@ -17,6 +17,8 @@ Skip match if you already ran `fetch-entities` — those results include IDs.
 
 Use when the user provides a CSV file of companies or people to resolve to Explorium IDs.
 
+> Personal data: contacts (emails, phones, profiles) are personal data. Only process/export records you are authorized to handle, minimize fields/volume, and follow the privacy guidance in SKILL.md.
+
 - **`--file-path <path>`** — path to the CSV file.
 - **`--schema '<json>'`** — required. JSON dict mapping CSV column headers to API field names. Build this by inspecting the CSV headers, then map each to the correct API field below.
 

@@ -117,7 +117,7 @@ Vibe Prospecting is designed for multi-step workflows — the kind you would oth
 
 ### 1 — Build a targeted prospect list
 
-Define ICP filters, discover matching companies, find relevant contacts, enrich records, and export structured lists ready for outreach or CRM import.
+Define ICP filters, find relevant contacts, discover matching companies, enrich records, and export structured lists ready for outreach or CRM import.
 
 **For:** GTM engineers, SDR leaders, growth operators &nbsp;|&nbsp; **Output:** CSV of qualified prospects
 

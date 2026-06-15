@@ -51,4 +51,6 @@ npx @vibeprospecting/vpai@latest enrich-prospects --args '{"enrichments":["profi
 
 Enrichment types: `contacts` (emails, phones), `profiles` (name, role, work history, education), `linkedin-posts`.
 
+> Personal data: contacts (emails, phones, profiles) are personal data. Only process/export records you are authorized to handle, minimize fields/volume, and follow the privacy guidance in SKILL.md.
+
 When **`--csv`** is used on the final step, output includes **`csv_path`** alongside **`db_path`**, **`table_name`**, and **`session_id`**.

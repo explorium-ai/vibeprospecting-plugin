@@ -15,6 +15,8 @@ npx @vibeprospecting/vpai@latest --help   # verify
 
 If the mount fails or `config.json` is missing, follow the full flow below.
 
+> Security note: the API key is a long-lived plaintext secret. Never print it into chat, logs, or shell history; prefer `login --poll` over `--poll-show`; set restrictive permissions on any `config.json` you write (e.g. `chmod 600`); and never share or commit the key.
+
 ## Key facts
 
 - Durable auth lives at `~/.config/vpai/config.json` on the **local machine** (not in the sandbox).
@@ -67,13 +69,13 @@ npx @vibeprospecting/vpai@latest login
 # Prints a browser URL (Auth0 / Explorium tenant) and optional user_code — use exactly what the CLI prints.
 ```
 
-Tell the user to open the URL and approve. Do **not** wait for an explicit "I approved" reply — proceed immediately to polling.
+Tell the user to open the URL and approve, then poll for completion and surface the sign-in status to the user.
 
 ```bash
 npx @vibeprospecting/vpai@latest login --poll
 ```
 
-Loop the `--poll` call until sign-in completes. Do not ask between polls. Cap total wait at ~2 minutes; if it doesn't complete, tell the user to approve at the URL.
+Poll until sign-in completes (cap total wait at ~2 minutes), reporting progress to the user. If it does not complete, ask the user to approve at the URL before continuing.
 
 If you need the key on stdout:
 
@@ -81,7 +83,7 @@ If you need the key on stdout:
 npx @vibeprospecting/vpai@latest login --poll-show
 ```
 
-Persist the key to the mounted local path so future sessions skip the browser:
+Persist the key to the mounted local path so future sessions skip the browser. This writes the secret in plaintext — restrict permissions afterward (`chmod 600 <path>`) and never echo the key elsewhere:
 
 ```bash
 echo '{"api_key":"<key>"}' > /sessions/<session-id>/mnt/vpai/config.json

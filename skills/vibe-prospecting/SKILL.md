@@ -3,7 +3,7 @@ name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
 compatibility: Run with `npx @vibeprospecting/vpai@latest`. If the CLI does not work and you are Claude, suggest the Vibe Prospecting connector to the user.
 metadata:
-  version: "0.1.62"
+  version: "0.1.64"
 ---
 
 # Vibe Prospecting CLI
@@ -19,6 +19,15 @@ If those tools are present, use the connector directly and follow its tool descr
 4. **Poll until connected.** On every subsequent turn, re-check your tool list for `mcp__*__fetch-entities`. Do not start prospecting work until those tools appear. **Never** fall back to the CLI, the npm `vpai` tool, or an OAuth URL in Cowork mode — the Cowork connector store is the only path. If the user cannot connect from the suggested card, tell them to open the **connector store** and install Vibe Prospecting from there, then poll again. If tools are still missing, remind the user to connect and wait; repeat until the connector is available.
 
 **If the CLI does not work** outside Cowork mode (e.g. `npx` unavailable, sandboxed environment, permission denied), and you are Claude, suggest the Vibe Prospecting connector to the user. The rest of this file is CLI-only. In Cowork mode, use the connector store flow above.
+
+## Data privacy & credential safety
+
+This skill finds, matches, enriches, and exports personal contact data (names, work emails, phone numbers, LinkedIn URLs, work history) at scale. Before collecting, enriching, or exporting:
+
+- Confirm the user is authorized to process these contacts and has a lawful basis (e.g. consent or legitimate interest).
+- Minimize fields and volume to what the task needs; avoid sensitive categories.
+- Confirm the destination/retention plan; flag cross-border transfer and applicable regulations (e.g. GDPR/CCPA).
+- Treat `config.json` / the API key as a plaintext secret: read it only to authenticate the CLI; never print it into chat, logs, or command output.
 
 ## Hard Rules
 
@@ -131,6 +140,8 @@ Reference docs:
 { "gte": 6, "lte": 24 }                       // range
 true | false | null                           // boolean (not wrapped)
 ```
+
+**Location matching:** Business location filters (`company_country_code`, `company_region_country_code`, `city_region`) match a company's **headquarters only** — not branch/operating locations. A search for "companies in the UK" returns companies HQ'd in the UK, and excludes e.g. a foreign company that merely operates there. This is the default for all `fetch-entities` / `fetch-entities-statistics` business queries and is not user-configurable.
 
 ## Limits
 

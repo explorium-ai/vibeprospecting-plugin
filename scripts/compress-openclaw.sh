@@ -1,25 +1,29 @@
 #!/usr/bin/env bash
 # Build a marketplace-compatible OpenClaw plugin zip.
 #
-# The source tree keeps its multi-target layout (.claude-plugin/, .codex-plugin/,
-# .openclaw-plugin/). OpenClaw expects a different shape, so this script stages a
+# vpai-plugin/ keeps the multi-target host layout (.claude-plugin/, .codex-plugin/)
+# plus shared skills/. The OpenClaw-specific shape (manifest, marketplace, README,
+# install docs) lives in the sibling vpai-plugin-openclaw/ dir. This script stages a
 # corrected copy into a temp dir and zips THAT — the working tree is never modified.
 #
 # Output zip (root layout OpenClaw can install):
-#   openclaw.plugin.json   <- .openclaw-plugin/plugin.json copied verbatim (source already valid)
+#   openclaw.plugin.json   <- vpai-plugin-openclaw/openclaw.plugin.json copied verbatim (already valid)
 #   index.mjs              <- synthesized no-op runtime entry (required by the installer)
 #   package.json           <- patched: openclaw.extensions + private removed
 #   marketplace.json       <- Claude-format marketplace manifest (root; OpenClaw reads it)
-#   skills/ ...            <- copied verbatim
-#   README.md, docs/install-openclaw.md (if present)
+#   skills/ ...            <- copied verbatim from vpai-plugin/skills/
+#   README.md, docs/install-openclaw.md (from vpai-plugin-openclaw/, if present)
 #
 # Install:  openclaw plugins install ./vpai-openclaw.zip
 set -euo pipefail
 
 PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# OpenClaw-shape sources (manifest, marketplace, README, docs) live in the sibling
+# vpai-plugin-openclaw/ dir; skills are shared from vpai-plugin/skills/.
+OPENCLAW_DIR="${PLUGIN_DIR}/../vpai-plugin-openclaw"
 OUTPUT="${PLUGIN_DIR}/../vpai-openclaw.zip"
-SRC_MANIFEST="${PLUGIN_DIR}/.openclaw-plugin/plugin.json"
-SRC_MARKETPLACE="${PLUGIN_DIR}/.openclaw-plugin/marketplace.json"
+SRC_MANIFEST="${OPENCLAW_DIR}/openclaw.plugin.json"
+SRC_MARKETPLACE="${OPENCLAW_DIR}/marketplace.json"
 SKILL_MD="${PLUGIN_DIR}/skills/vibe-prospecting/SKILL.md"
 
 # Required by ClawHub/release validation:
@@ -42,7 +46,7 @@ trap 'rm -rf "$STAGE"' EXIT
 
 # 1. Manifest -> root openclaw.plugin.json. Source is already valid OpenClaw
 #    (skills array, configSchema, activation), so copy it verbatim — only the
-#    location changes (.openclaw-plugin/ -> repo root).
+#    location changes (vpai-plugin-openclaw/ -> zip root).
 cp "$SRC_MANIFEST" "${STAGE}/openclaw.plugin.json"
 
 # 2. No-op runtime entry (skills load from the manifest; the entry is never executed).
@@ -88,23 +92,20 @@ OPENCLAW_API_FLOOR="$OPENCLAW_API_FLOOR" OPENCLAW_VERSION="$OPENCLAW_VERSION" no
   fs.writeFileSync(process.argv[2], JSON.stringify(p, null, 2) + "\n");
 ' "${PLUGIN_DIR}/package.json" "${STAGE}/package.json" "$SKILL_MD"
 
-# 4. marketplace.json (root) — copied verbatim from the committed source
-#    .openclaw-plugin/marketplace.json (Claude/Codex-style catalog entry).
+# 4. marketplace.json (root) — the OpenClaw marketplace catalog, copied verbatim.
 cp "$SRC_MARKETPLACE" "${STAGE}/marketplace.json"
 
 # 5. Copy skills + docs verbatim.
 cp -R "${PLUGIN_DIR}/skills" "${STAGE}/skills"
-# README: prefer the OpenClaw-only README so the bundle/repo doesn't ship the
-# multi-host source README (which links to Claude/Codex install docs not present
-# here). Fall back to README.md if the OpenClaw variant is absent.
-if [ -f "${PLUGIN_DIR}/README.openclaw.md" ]; then
-  cp "${PLUGIN_DIR}/README.openclaw.md" "${STAGE}/README.md"
-elif [ -f "${PLUGIN_DIR}/README.md" ]; then
-  cp "${PLUGIN_DIR}/README.md" "${STAGE}/README.md"
+# README + install docs come from vpai-plugin-openclaw/ (the OpenClaw-only shape),
+# so the bundle never ships the multi-host source README that links to Claude/Codex
+# install docs not present here.
+if [ -f "${OPENCLAW_DIR}/README.md" ]; then
+  cp "${OPENCLAW_DIR}/README.md" "${STAGE}/README.md"
 fi
-if [ -f "${PLUGIN_DIR}/docs/install-openclaw.md" ]; then
+if [ -f "${OPENCLAW_DIR}/docs/install-openclaw.md" ]; then
   mkdir -p "${STAGE}/docs"
-  cp "${PLUGIN_DIR}/docs/install-openclaw.md" "${STAGE}/docs/install-openclaw.md"
+  cp "${OPENCLAW_DIR}/docs/install-openclaw.md" "${STAGE}/docs/install-openclaw.md"
 fi
 
 # 6. Zip the staged root.
