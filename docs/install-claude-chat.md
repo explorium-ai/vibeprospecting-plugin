@@ -1,6 +1,6 @@
-# Connect Vibe Prospecting in Claude Cowork
+# Connect Vibe Prospecting in Claude Chat
 
-Vibe Prospecting runs in Cowork through its MCP connector. Cowork cannot run the vpai CLI, so connect it from the connector store—no GitHub clone, packaging, or command line is required.
+Vibe Prospecting runs in Claude Chat (claude.ai / Claude desktop) through its MCP connector. Claude Chat cannot run the vpai CLI, so connect it from the connector store—no GitHub clone, packaging, or command line is required.
 
 ## Connector setup
 
@@ -22,6 +22,6 @@ If the suggested card fails, open the **connector / integrations UI** directly, 
 | Problem | Fix |
 |---|---|
 | No `mcp__*__fetch-entities` in tool list | Search the connector store for Vibe Prospecting, suggest it, then re-check tools |
-| User asks to use CLI or `npx vpai` | Cowork cannot run the CLI; connector store is the only path |
+| User asks to use CLI or `npx vpai` | Claude Chat cannot run the CLI; connector store is the only path |
 | Connector connect fails | Open connector store, connect Vibe Prospecting again, then re-check tools |
 | Auth / 401 on connector tools | Reconnect Vibe Prospecting from the connector or integrations UI |

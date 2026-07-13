@@ -59,7 +59,7 @@ node -e '
 export default definePluginEntry({
   id: ${JSON.stringify(m.id)},
   name: ${JSON.stringify(m.name || m.id)},
-  description: "Vibe Prospecting skills bundle (CLI-backed via npx @vibeprospecting/vpai).",
+  description: "Vibe Prospecting skills bundle (CLI-backed via npx @vibeprospecting/vpai@latest).",
   register() {
     // Skills-only plugin: no in-process tools.
   },
