@@ -95,8 +95,12 @@ OPENCLAW_API_FLOOR="$OPENCLAW_API_FLOOR" OPENCLAW_VERSION="$OPENCLAW_VERSION" no
 # 4. marketplace.json (root) — the OpenClaw marketplace catalog, copied verbatim.
 cp "$SRC_MARKETPLACE" "${STAGE}/marketplace.json"
 
-# 5. Copy skills + docs verbatim.
+# 5. Copy skills verbatim, then generate OpenClaw skills from Claude-plugin
+#    commands (commands/*.md). OpenClaw has no plugin `commands` concept —
+#    skills are its slash-command surface — so each command ships as a skill.
 cp -R "${PLUGIN_DIR}/skills" "${STAGE}/skills"
+bash "${PLUGIN_DIR}/scripts/commands-to-openclaw-skills.sh" \
+  "${PLUGIN_DIR}/commands" "${STAGE}/skills" "$SKILL_MD"
 # README + install docs come from vpai-plugin-openclaw/ (the OpenClaw-only shape),
 # so the bundle never ships the multi-host source README that links to Claude/Codex
 # install docs not present here.

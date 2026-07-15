@@ -2,7 +2,7 @@
 name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
 metadata:
-  version: "0.1.106"
+  version: "0.1.107"
 ---
 
 # Vibe Prospecting
