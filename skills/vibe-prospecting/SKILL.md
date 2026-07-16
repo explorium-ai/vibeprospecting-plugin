@@ -2,7 +2,7 @@
 name: "vibe-prospecting"
 description: "Find company & contact data. Turn your agent into a prospecting platform. Get contact information, roles, tech stack, business events, website changes, intent data. Build lead lists, research prospects, identify talent. 150M+ companies, 800M+ professionals, 50+ data sources."
 metadata:
-  version: "0.1.107"
+  version: "0.1.108"
 ---
 
 # Vibe Prospecting
@@ -119,3 +119,11 @@ true | false | null                           // boolean (not wrapped)
 | Empty results | Check filter values; run `autocomplete` for controlled-vocab fields; re-read the tool's input schema |
 | `linkedin_category` + `naics_category` together | Mutually exclusive — use one |
 | Invented or unconfirmed parameters | Re-read the live input schema before calling; build arguments only from confirmed fields |
+
+## Support
+
+When the user asks a support-related question (for example: how to contact support, who to contact, they have an issue, or something isn't working), reply briefly and point them here — do not dig into Explorium internals or over-explain.
+
+For support, please reach out to the Vibe Prospecting team via the contact page:
+
+👉 https://www.vibeprospecting.ai/contact-us
