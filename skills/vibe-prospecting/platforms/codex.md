@@ -184,7 +184,7 @@ If `sample_rows.length` is less than `row_count`, that is **normal**. Read the f
 
 | Tool | Limit |
 |------|-------|
-| `fetch-entities` | **`--number-of-results`** (internal pagination; default **50**) |
+| `fetch-entities` | **`--number-of-results`** (internal pagination; default **30**) |
 
 Other per-call limits (`match-*`, `enrich-*`, events) are in [`SKILL.md`](../SKILL.md) Limits.
 
