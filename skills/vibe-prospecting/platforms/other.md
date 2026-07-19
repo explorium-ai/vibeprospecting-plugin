@@ -79,7 +79,7 @@ Run **`vpai`** (after Install above). Treat every tool response as JSON on stdou
 
 **Session ownership:** one `--session-id` ↔ one agent ↔ one sequential chain. Parallel agents sharing a session overwrite each other's CSV files and checkpoint state. Wait for exit before the next command; use a new `--session-id` if you need parallel workstreams.
 
-**Controlled vocab:** run `autocomplete` before fetch/stats for `linkedin_category`, `naics_category`, `company_tech_stack_tech`, `job_title`, `business_intent_topics`, `city_region`.
+**Controlled vocab:** run `autocomplete` before fetch/stats for `linkedin_category`, `naics_category`, `company_tech_stack_tech`, `job_title`, `interests`, `skills`, `business_intent_topics`, `city_region`.
 
 ## Sample Gate
 
