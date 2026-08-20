@@ -1,0 +1,33 @@
+---
+name: HOL Plugin Scanner
+
+# yamllint disable-line rule:truthy
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        # yamllint disable-line rule:line-length
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Scan plugin
+        # yamllint disable-line rule:line-length
+        uses: hashgraph-online/ai-plugin-scanner-action@b402d3b3aaa8f59df8e8aa427dc97694a0af2819  # v1.2.528
+        with:
+          plugin_dir: "."
+          mode: scan
+          min_score: 80
+          fail_on_severity: high
+          format: sarif
+          upload_sarif: true

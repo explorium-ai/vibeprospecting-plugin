@@ -39,6 +39,7 @@
       "Research the engineering leaders at Palo Alto Networks.",
       "Build a lead list of companies using Salesforce."
     ],
-    "brandColor": "#1769FF"
+    "brandColor": "#1769FF",
+    "composerIcon": "./assets/icon.png"
   }
 }
