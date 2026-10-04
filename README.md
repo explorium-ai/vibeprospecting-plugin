@@ -119,7 +119,7 @@ If you want the MCP server or Gemini CLI extension without this plugin bundle, u
 
 ## Use cases and example workflows
 
-Vibe Prospecting is designed for multi-step workflows - the kind you would otherwise build in Clay or n8n - but running natively inside Claude. Each section below describes a use case and includes a ready-to-use prompt.
+Vibe Prospecting is designed for multi-step workflows, the kind you would otherwise build in a workflow automation tool, but running natively inside Claude. Each section below describes a use case and includes a ready-to-use prompt.
 
 
 | Use Claude chat alone for  | Use Vibe Prospecting Plugin for                                              |
