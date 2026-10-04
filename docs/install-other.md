@@ -2,6 +2,8 @@
 
 For hosts that are not Claude Code, Claude Chat, Cowork, Codex, or OpenClaw—terminals, scripts, CI, or other agent environments—clone the plugin repository and load it locally.
 
+For **Grok Build**, see the [dedicated install guide](install-grok-build.md) for marketplace status and installation instructions. Grok Build uses the same CLI workflow described below.
+
 ## 1. Clone the repository
 
 ```bash
