@@ -2,7 +2,7 @@
 name: "vibe-hubspot"
 description: "Safely bridge Vibe Prospecting data into HubSpot companies and contacts. Use when a user asks to push, insert, sync, enrich, update, or map Vibe or Explorium records into HubSpot CRM."
 metadata:
-  version: "0.2.1"
+  version: "0.3.0"
 ---
 
 # Vibe Prospecting → HubSpot
@@ -76,13 +76,46 @@ Before any paid export or enrichment:
 
 Never describe a sample as the complete result set. Preserve warnings such as overlapping ranges, parent-versus-branch identity, truncated text, missing fields, or suspected bad classification.
 
-### 4. Map fields against the live HubSpot schema
+### 4. Build and approve the HubSpot Mapping Contract
 
-Use the predefined core mappings in [`references/field-mappings.md`](references/field-mappings.md) only after validating the live destination property. A core mapping may be proposed when the source and destination meanings and types match.
+The **HubSpot Mapping Contract** is the source-to-destination schema for this transfer. No record write plan may be created until the user reviews and approves it. Read the presentation and candidate rules in [`references/field-mappings.md`](references/field-mappings.md).
 
-Every exported field not listed in the core mapping table remains unmapped until the user chooses or creates a compatible HubSpot property. A text-compatible destination alone does not establish equivalent meaning.
+Begin the mapping output before ancillary explanations with the literal top-level heading `# REQUIRED REVIEW — HUBSPOT MAPPING CONTRACT`, then render this exact callout:
 
-Use only these proposal value forms:
+> **STOP:** This contract defines which Vibe fields may be delivered into which HubSpot properties. Review every mapped and unmapped field. Approving this contract does not approve a HubSpot write.
+
+Show **Status: AWAITING MAPPING APPROVAL** and **Contract revision: N** directly above the mapping.
+
+Prefer a host-native dropdown, searchable selector, or structured choice control for each editable mapping row when the host supports it. Populate choices from the live HubSpot schema and show each property's label, internal name, and type. Include:
+
+- compatible writable HubSpot properties, with predefined exact mappings first;
+- `Leave unmapped`;
+- `Show other writable properties`;
+- `Propose a new custom property`.
+
+Selecting `Propose a new custom property` creates only a separately approved proposal. It never creates the property or authorizes a write. Do not claim a dropdown exists unless the host rendered one.
+
+If interactive controls are unavailable, fail to render, or cannot return a structured choice, render this authoritative fallback:
+
+| Vibe source field | Representative value | HubSpot destination | Internal name | Destination type | Treatment | Status |
+|---|---|---|---|---|---|---|
+| Source column | Unmasked value or `unavailable` | Property label or `Leave unmapped` | Internal name or `—` | Live type or `—` | raw/format-normalized/etc. | REQUIRED — LOCKED / PREDEFINED — REVIEW / USER DECISION NEEDED / UNMAPPED |
+
+Contract requirements:
+
+- Show every exported field in the current transfer; never silently omit one.
+- Show required bridge mappings first as `REQUIRED — LOCKED`.
+- Show predefined mappings as preselected but still requiring review.
+- Use only live, writable, type-compatible HubSpot properties as default candidates. A compatible text type alone does not establish equivalent meaning.
+- Never use masked, redacted, or preview-only content as a representative value.
+- Keep unsupported fields visible as `UNMAPPED`.
+- Summarize counts for required, predefined, user-selected, unmapped, and newly proposed properties.
+
+Ask exactly whether the user approves **Mapping Contract revision N as the schema for the next HubSpot write proposal**. State that this approval does not authorize Vibe credit spend, property creation, associations, or any HubSpot record write. Silence is not approval.
+
+After approval, freeze the contract. Any source field, destination, treatment, custom-property proposal, or unmapped decision change creates a new revision and requires mapping approval again.
+
+Use only these contract value forms:
 
 - **Raw:** source value is unchanged.
 - **Format-normalized:** only destination-required syntax changes; preserve the original value and show the exact change.
@@ -112,6 +145,8 @@ Say which lookup returned zero matches; never overstate this as `no duplicate ex
 
 ### 6. Build the write plan
 
+State **Mapping Contract revision N — approved** above the write plan. Every business property in the payload must correspond to an approved contract row. Connector controls remain visible in the write plan but are not selectable business mappings.
+
 Use one row per CRM record, with field-level detail available before approval:
 
 | Action | Record | Match evidence | Property | Current | Proposed | Value form | Warning |
@@ -129,7 +164,7 @@ Requirements:
 - Include the raw Vibe `business_id` or `prospect_id` as `vibe_prospecting_record_id` in every insert/update payload.
 - For a blocked or informational dry run, do not generate an exact `vibe_prospecting_last_modified`; state that it will be generated immediately before an executable proposal. For an executable insert/update plan, generate one fixed UTC timestamp immediately before presenting it, label it `bridge-generated`, and submit that exact approved timestamp. The next approved update replaces it.
 - Show every connector-default suppression value in the proposal. A control value is never permission to change the corresponding business field.
-- Keep the plan stable after approval. Any changed value, row, field, timestamp, control, association, or action requires a new proposal and approval.
+- Keep the plan stable after approval. Any changed value, row, field, timestamp, control, association, or action requires a new write proposal and approval; any mapping change first requires a revised Mapping Contract and mapping approval.
 
 ### 7. Obtain approval for each write
 
@@ -145,7 +180,7 @@ Reading, schema discovery, duplicate search, and post-write verification do not 
 
 Use `manage_crm_objects` only after approval and only for the approved batch. Obey its live schema and batch limit; do not guess parameters.
 
-- Send only approved business properties, the mandatory `vibe_prospecting_record_id` and `vibe_prospecting_last_modified`, and approved connector-default suppression controls.
+- Send only business properties authorized by the approved Mapping Contract, the mandatory `vibe_prospecting_record_id` and `vibe_prospecting_last_modified`, and approved connector-default suppression controls.
 - Include both mandatory bridge values in every insert and update, even when the record already stores the same Vibe ID.
 - On create, if the live schema documents that omitted `hubspot_owner_id` assigns the current user and `hubspot_owner_id: ""` leaves the record unowned, include the empty string and show `Owner: unowned` as a `connector-control` in the exact proposal. Otherwise omit owner fields. Never guess a suppression value. Never send a non-empty owner ID unless the user requested the assignment, the owner was resolved through `search_owners`, and the exact assignment was approved.
 - Call `tool_guidance` before association operations as required by HubSpot.
@@ -165,6 +200,7 @@ After each write call:
 Return a transfer ledger containing:
 
 - Vibe stable ID.
+- Approved Mapping Contract revision.
 - HubSpot object type and record ID/link.
 - Action taken.
 - Fields written and any format normalizations.

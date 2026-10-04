@@ -17,6 +17,54 @@ Permitted normalization is mechanical and meaning-preserving: trim surrounding w
 
 Never summarize, infer, translate, truncate, split a name, regroup list items, convert categories, calculate a midpoint, or derive a business value. If the destination cannot accept the raw value with only mechanical formatting, leave it unmapped. Never present masked, redacted, or preview-only content as a proposed value.
 
+## Mapping Contract presentation
+
+The Mapping Contract is the authoritative schema for the transfer, not an informational suggestion. Present it under the exact top-level heading `REQUIRED REVIEW — HUBSPOT MAPPING CONTRACT`, before secondary explanations.
+
+Use one row for every exported Vibe field and expose:
+
+- Vibe source column;
+- representative unmasked value, or `unavailable`;
+- selected HubSpot label;
+- HubSpot internal property name;
+- live destination type;
+- value form or treatment;
+- mapping status and warning.
+
+### Destination choices
+
+For editable rows, attempt a host-native dropdown, searchable selector, or structured choice populated from the live HubSpot schema. Order choices as follows:
+
+1. Predefined exact mapping when it exists.
+2. Other writable properties with equivalent meaning and compatible type.
+3. `Leave unmapped`.
+4. `Show other writable properties`.
+5. `Propose a new custom property`.
+
+Do not flood the initial selector with every text property. Exclude read-only, calculated, hidden, and structurally incompatible properties. `Show other writable properties` may reveal the broader list, but label semantically incompatible choices and require explicit manual selection.
+
+A selection is not accepted until it is echoed in the complete Mapping Contract. If the host cannot render or return interactive selections, use the Markdown table fallback; never skip the contract.
+
+### Mapping statuses
+
+Use these exact statuses:
+
+- `REQUIRED — LOCKED`
+- `PREDEFINED — REVIEW`
+- `USER SELECTED`
+- `USER DECISION NEEDED`
+- `UNMAPPED`
+- `INCOMPATIBLE`
+- `NEW PROPERTY PROPOSED`
+
+Required bridge fields are locked. A new-property selection is only a proposal for a separately approved property-creation write.
+
+### Approval boundary
+
+Label each complete rendering `Contract revision: N` and `Status: AWAITING MAPPING APPROVAL`. Summarize required, predefined, user-selected, unmapped, and new-property counts.
+
+Mapping approval freezes the source field, destination internal name, type, and treatment for that revision. It does not approve Vibe credit spend, property creation, associations, overwrites, or record writes. Any mapping change requires a complete revised contract and new mapping approval.
+
 ## Company mappings
 
 | Vibe meaning | HubSpot meaning | Default | Rules |
