@@ -137,7 +137,7 @@ Create these properties on every HubSpot object type used by the bridge:
 | Label | Internal name | Type | Written value |
 |---|---|---|---|
 | `Vibe Prospecting Record ID` | `vibe_prospecting_record_id` | Single-line text | Company `business_id` or contact `prospect_id` |
-| `Vibe Prospecting Last Modified` | `vibe_prospecting_last_modified` | Date-time | For an executable plan, the fixed UTC timestamp shown as `bridge-generated`; no exact timestamp is generated for a blocked dry run |
+| `Vibe Prospecting Last Modified` | `vibe_prospecting_last_modified` | Date-time | Fixed UTC timestamp generated immediately before each approved write call under the approved generation rule and recorded in the transfer ledger; no timestamp is generated for a blocked dry run |
 
 Both properties are required for every data insert/update. `vibe_prospecting_record_id` is the durable bridge identity. `vibe_prospecting_last_modified` records the time of this bridge's HubSpot activity and is overwritten by each later approved update. It is not a Vibe source-modification timestamp and is not HubSpot's built-in all-purpose last-modified property.
 

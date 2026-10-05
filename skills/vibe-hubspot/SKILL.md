@@ -2,7 +2,7 @@
 name: "vibe-hubspot"
 description: "Safely bridge Vibe Prospecting data into HubSpot companies and contacts. Use when a user asks to push, insert, sync, enrich, update, or map Vibe or Explorium records into HubSpot CRM."
 metadata:
-  version: "0.3.3"
+  version: "0.4.0"
 ---
 
 # Vibe Prospecting → HubSpot
@@ -15,8 +15,8 @@ Read [`references/field-mappings.md`](references/field-mappings.md) before propo
 
 ## Non-negotiable boundaries
 
-1. **Every HubSpot write requires fresh, explicit approval.** Immediately before each write call, show that call's exact records, actions, properties, current values, proposed values, associations, and any overwrites. Wait for an affirmative user response. Never infer approval from an earlier request, approval of a sample, silence, or approval of another batch.
-2. **Never offer or accept a confirmation waiver.** Connector-level confirmation is an additional safeguard, not a replacement for this skill's proposal and approval step.
+1. **Every HubSpot execution scope requires explicit approval.** Approval may cover one connector call or a frozen, pilot-verified bulk run that the connector must split into multiple calls. Never infer approval from an earlier request, mapping approval, silence, or approval of a different scope.
+2. **The user controls the approval mode.** Offer per-call approval or pilot-then-bulk approval. A bulk approval is valid only for the exact dataset snapshot, Mapping Contract revision, actions, policies, and maximum record count shown in the bulk proposal. Connector-level confirmation remains an additional safeguard.
 3. **Do only the requested CRM work.** Do not assign owners, lifecycle stages, lead status, marketing-contact status, pipelines, associations, notes, tasks, lists, unrelated custom properties, or unrelated blank fields unless the user specifically requests and approves them. On creates, use only the live schema's documented control for suppressing an automatic owner assignment, show that control in the proposal, and leave the record unowned. The two bridge properties defined below are mandatory setup, but creating them is still a separate HubSpot write requiring approval.
 4. **No semantic transformation.** Write only raw values or minimal destination-required formatting. Show every formatting change. Never summarize, infer, translate, truncate, split names, regroup values, convert categories, or derive a business value. The mandatory bridge activity timestamp is generated metadata, not a transformed Vibe value.
 5. **Default to fill-empty.** Never overwrite a non-empty HubSpot value unless the user specifically requests overwrite and the proposal shows `current → proposed`.
@@ -163,49 +163,70 @@ Count a lookup as complete only after `search_crm_objects` returns successfully.
 
 State **Mapping Contract revision N — approved** above the write plan. Every business property in the payload must correspond to an approved contract row. Connector controls remain visible in the write plan but are not selectable business mappings.
 
-Use one row per CRM record, with field-level detail available before approval:
+For a pilot or single-call plan, use one row per CRM record:
 
 | Action | Record | Match evidence | Property | Current | Proposed | Value form | Warning |
 |---|---|---|---|---|---|---|---|
 | Create/update/associate | HubSpot ID or `new` | Vibe ID/domain/email/LinkedIn | Human label | value/blank/not queried | value | raw/format-normalized/bridge-generated/connector-control | optional |
 
-Requirements:
+For a bulk run, first execute and verify a user-approved pilot. Then present one bulk proposal covering the frozen remainder. It must state:
 
-- Distinguish `blank`, `not queried`, and `unavailable pending an approved paid operation`.
-- Never present masked, redacted, or preview-only content as a proposed write value.
-- Show all overwrites explicitly.
-- Show associations as separate actions.
-- Show omitted rows and reasons.
-- Show batch count and current live tool limit.
-- Include the raw Vibe `business_id` or `prospect_id` as `vibe_prospecting_record_id` in every insert/update payload.
-- For a blocked or informational dry run, do not generate an exact `vibe_prospecting_last_modified`; state that it will be generated immediately before an executable proposal. For an executable insert/update plan, generate one fixed UTC timestamp immediately before presenting it, label it `bridge-generated`, and submit that exact approved timestamp. The next approved update replaces it.
-- Show every connector-default suppression value in the proposal. A control value is never permission to change the corresponding business field.
-- Keep the plan stable after approval. Any changed value, row, field, timestamp, control, association, or action requires a new write proposal and approval; any mapping change first requires a revised Mapping Contract and mapping approval.
+- exact Vibe dataset/export reference, remaining row count, maximum authorized rows, and every exclusion rule;
+- approved Mapping Contract revision and the exact business-property set;
+- create/update/skip counts after duplicate resolution, plus omitted or ambiguous rows and reasons;
+- overwrite, owner, association, and connector-control policies;
+- current connector batch limit and resulting write-call count;
+- timestamp generation rule;
+- known data-quality warnings and representative examples;
+- user-selected failure policy: `stop on first preflight, write, or verification failure` or `continue remaining rows and report every skipped, failed, or mismatched row`;
+- per-call verification, checkpointing, final ledger, and timing method.
 
-### 7. Obtain approval for each write
+Make the complete per-record plan available before approval, but do not force the user to approve each connector-sized chunk. Distinguish `blank`, `not queried`, and `unavailable pending an approved paid operation`. Never present masked, redacted, or preview-only content as a proposed write value.
 
-Ask a direct question such as:
+Every plan must:
 
-> Approve this HubSpot write: create 3 unowned companies with the properties and connector controls shown above, with no associations or other changes?
+- show all overwrites explicitly;
+- show associations as separate actions;
+- include the raw Vibe `business_id` or `prospect_id` as `vibe_prospecting_record_id` in every insert/update payload;
+- show every connector-default suppression value;
+- send no field outside the approved Mapping Contract and controls.
 
-Approval must identify the exact proposed batch. Before every later write call, including retries, associations, owner changes, or remediation updates, show that call's plan and ask again.
+For a blocked or informational dry run, do not generate `vibe_prospecting_last_modified`. For an approved write, generate one fixed UTC timestamp immediately before each `manage_crm_objects` call, use it for that call's rows, and record the exact submitted value in the ledger. The user approves this generation rule, not a timestamp that becomes stale while waiting.
 
-Reading, schema discovery, duplicate search, and post-write verification do not require write approval.
+Keep the approved scope stable. A changed dataset snapshot, row-selection rule, maximum count, mapping, property set, overwrite policy, owner policy, association policy, connector control, or failure policy requires a revised proposal and approval. Splitting the same approved scope solely to satisfy the connector's live batch limit does not.
+
+### 7. Obtain execution approval
+
+Offer:
+
+1. **Per-call approval:** show the exact connector-call plan and obtain approval immediately before that call.
+2. **Pilot then bulk:** show and obtain approval for an exact pilot, write it, and verify every intended pilot write and association. Offer bulk approval only when every pilot row is `verified`; any `mismatch`, `failed`, or `not written` result blocks bulk execution until remediation is separately approved and a new pilot passes.
+
+The qualifying pilot and bulk proposal must use the same dataset snapshot, Mapping Contract revision, object type, action semantics, property set, value handling, deduplication order, overwrite policy, owner policy, association policy, connector controls, and timestamp rule. Any execution-relevant change invalidates the pilot and requires a new pilot before bulk approval.
+
+For bulk mode, ask a direct question such as:
+
+> Approve this bulk HubSpot run for the stated Mapping Contract revision and all N remaining rows in dataset D, split automatically into the stated connector-sized calls, using the shown deduplication, field, owner, overwrite, failure, verification, and timing policies?
+
+An affirmative answer authorizes every `manage_crm_objects` call required only to execute that frozen bulk proposal. Do not pause for another human approval solely because the connector batch limit requires another call. Respect any confirmation the connector itself requires.
+
+Bulk approval does not authorize changed mappings or rows, newly discovered write actions, broader fields, cleanup, corrective writes, or retries. Skip or stop those cases according to the approved failure policy and report them. Reading, schema discovery, duplicate search, and post-write verification do not require write approval.
 
 ### 8. Write minimally
 
-Use `manage_crm_objects` only after approval and only for the approved batch. Obey its live schema and batch limit; do not guess parameters.
+Use `manage_crm_objects` only after approval and only within the approved single-call or bulk scope. Obey its live schema and batch limit; split an approved bulk scope automatically without changing its semantics.
 
 - Send only business properties authorized by the approved Mapping Contract, the mandatory `vibe_prospecting_record_id` and `vibe_prospecting_last_modified`, and approved connector-default suppression controls.
 - Include both mandatory bridge values in every insert and update, even when the record already stores the same Vibe ID.
-- On create, if the live schema documents that omitted `hubspot_owner_id` assigns the current user and `hubspot_owner_id: ""` leaves the record unowned, include the empty string and show `Owner: unowned` as a `connector-control` in the exact proposal. Otherwise omit owner fields. Never guess a suppression value. Never send a non-empty owner ID unless the user requested the assignment, the owner was resolved through `search_owners`, and the exact assignment was approved.
+- On create, if the live schema documents that omitted `hubspot_owner_id` assigns the current user and `hubspot_owner_id: ""` leaves the record unowned, include the empty string and show `Owner: unowned` as a `connector-control` in the proposal. Otherwise omit owner fields. Never guess a suppression value. Never send a non-empty owner ID unless the user requested the assignment, the owner was resolved through `search_owners`, and the assignment is in the approved scope.
+- Immediately before each write call, re-resolve every row's identity. For creates, treat a newly matched or ambiguous row as a preflight failure; never silently convert its approved create into an update. For updates, re-read every target property in the approved payload and treat any changed target, match evidence, blank/non-empty state, or approved `current → proposed` state as a preflight failure. Under `stop` mode, stop before submitting that call. Under `continue` mode, skip and report only the affected rows. Any changed action or value requires a revised proposal.
 - Call `tool_guidance` before association operations as required by HubSpot.
-- Do not add cleanup updates after a create merely to replace HubSpot-derived values unless the user approves that new write.
-- If one row fails, do not broaden, substitute, or silently retry it.
+- Do not add cleanup or corrective updates unless the user approves a revised proposal.
+- Follow the approved stop-or-continue failure policy. Never broaden, substitute, or silently retry a failed row.
 
 ### 9. Verify and report
 
-After each write call:
+After each write call, without requesting another approval:
 
 1. Re-read every affected ID with `get_crm_objects`.
 2. Compare approved values with verified values.
@@ -226,6 +247,7 @@ Return a transfer ledger containing:
 - Data-quality warnings.
 - Vibe dataset/export reference when available.
 - Incremental and cumulative credits used.
+- Bulk run start/end times, per-call durations, and total write duration when timing was requested.
 
 Do not expose internal Vibe session IDs, local paths, credentials, or raw tool payloads.
 
@@ -233,22 +255,21 @@ Do not expose internal Vibe session IDs, local paths, credentials, or raw tool p
 
 Treat a timeout or interrupted response as an unknown outcome, not a failed write. Reconcile each submitted source row deterministically:
 
-1. Keep the prior approved payload and its fixed `vibe_prospecting_last_modified` timestamp.
+1. Keep the submitted payload and its recorded `vibe_prospecting_last_modified` timestamp for reconciliation.
 2. Resolve the HubSpot target again using the normal order: exact Vibe ID first, then the permitted exact fallback.
-3. If exactly one record is found, re-read every property from the prior payload:
-   - every value matches: mark the prior write verified; issue no write;
-   - some values differ: build a new plan containing only the missing/mismatched business values plus both mandatory bridge properties and a new fixed timestamp; obtain fresh approval;
-   - the record conflicts with another identity key: stop as ambiguous.
-4. If no record is found:
-   - prior insert: build a new insert proposal with a new fixed timestamp and obtain fresh approval;
-   - prior update: do not create automatically; report that the update target was not found and suggest a separately approved insert.
-5. If multiple records are found, stop and show the candidates.
+3. If exactly one record is found, re-read every property from the submitted payload:
+   - every value matches: mark the write verified; issue no write;
+   - some values differ: mark the row `mismatch`; do not issue a corrective write under the prior approval;
+   - the record conflicts with another identity key: mark the row ambiguous and do not write it.
+4. If no record is found, mark the outcome unresolved. Do not replay a prior insert or convert a prior update into an insert under the prior approval.
+5. If multiple records are found, mark the row ambiguous and show the candidates.
+6. Continue or stop the untouched remainder according to the approved failure policy.
 
-Never replay a previous payload blindly. Reuse Vibe session/CSV continuity as directed by the `vibe-prospecting` skill, keep internal checkpoint data private, and resume only reconciled rows.
+After reconciliation, any retry or corrective write requires a revised proposal and approval. Never replay a previous payload blindly. Reuse Vibe session/CSV continuity as directed by the `vibe-prospecting` skill, keep internal checkpoint data private, and resume only reconciled rows.
 
 ## Limitations to state when relevant
 
 - HubSpot tools and writable objects vary by account, subscription, permissions, and session.
 - HubSpot MCP creates and updates; this workflow does not delete.
 - Branch records may carry parent-company firmographics.
-- This supervised flow is suitable for small and moderate reviewed batches; it is not a scheduled or unattended bidirectional sync.
+- This supervised flow supports bounded, frozen bulk transfers after a verified pilot; it is not a scheduled or unattended bidirectional sync.
