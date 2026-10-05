@@ -2,7 +2,7 @@
 name: "vibe-hubspot"
 description: "Safely bridge Vibe Prospecting data into HubSpot companies and contacts. Use when a user asks to push, insert, sync, enrich, update, or map Vibe or Explorium records into HubSpot CRM."
 metadata:
-  version: "0.4.1"
+  version: "0.4.2"
 ---
 
 # Vibe Prospecting → HubSpot
@@ -87,18 +87,33 @@ Begin the mapping output before ancillary explanations with the literal top-leve
 
 Show **Status: AWAITING MAPPING APPROVAL** and **Contract revision: N** directly above the mapping.
 
-The first rendering attempt **must create an inline HTML artifact**. On Claude, explicitly use an `inline HTML artifact`; do not merely print HTML in a Markdown code fence. Use the artifact as the primary Mapping Contract UI and render a native `<select>` dropdown or accessible searchable selector in every editable destination cell. Follow the artifact behavior in [`references/field-mappings.md`](references/field-mappings.md).
+The first rendering attempt **must create an inline HTML artifact**. On Claude, explicitly use an `inline HTML artifact`; do not merely print HTML in a Markdown code fence. Use the artifact as the primary Mapping Contract UI and follow [`references/field-mappings.md`](references/field-mappings.md).
 
-Populate selector choices only from the live HubSpot schema and show the property label and type. Keep HubSpot internal property names in the artifact's structured selection data for execution, not as a visible Mapping Contract column. Include:
+Immediately before building the artifact, retrieve the destination list from the user's connected HubSpot account with `search_properties` and, when needed, `get_properties`. The list is live, never static. Include only properties confirmed by that schema response; if the schema changes, create a new contract revision.
+
+Before rendering an approvable contract, confirm that `vibe_prospecting_record_id` exists as writable single-line text and `vibe_prospecting_last_modified` exists as writable date-time on the target object. If either is missing or has the wrong type, stop the Mapping Contract and use the separately approved property-creation workflow. Rediscover both properties before rebuilding the artifact; never display unverified fixed destinations.
+
+Render a native `<select>` dropdown or accessible searchable selector in every editable destination cell. Show the live property label and type while retaining its internal name in structured contract data. Include:
 
 - compatible writable HubSpot properties, with predefined exact mappings first;
 - `Leave unmapped`;
 - `Show other writable properties`;
 - `Propose a new custom property`.
 
+Each HubSpot destination internal name may be selected by at most one source row. Selecting it in one row must remove or disable it everywhere else; changing the selection releases it. Repeated sentinel choices such as `Leave unmapped` are allowed. Disable artifact approval while any duplicate destination exists.
+
+The two fixed integration rows use plain destination text, not dropdowns:
+
+- Vibe `business_id` or `prospect_id` → `Vibe Prospecting Record ID`;
+- `Generated transfer timestamp` → `Vibe Prospecting Last Modified`.
+
+Both rows must always show status `INTEGRATION REQUIRED`. `Generated transfer timestamp` is generated at write time and must not be described as Vibe source data.
+
 Selecting `Propose a new custom property` creates only a separately approved proposal. Keep the row `DECISION REQUIRED` until the property is created, rediscovered in the live schema, and selected in a revised contract.
 
-Do not skip directly to Markdown because artifact support is uncertain. Attempt the inline HTML artifact first. Fall back only when the host actually cannot create or render an inline HTML artifact, the artifact fails, or neither structured return nor copy/paste can recover the user's selections. Then render this authoritative five-column Markdown table:
+Provide one primary action control, not a separate copy button. When the contract has no `DECISION REQUIRED` rows, label it **Approve mapping** and prepare the complete canonical approval message for the user to paste and send in chat. When unresolved rows or a custom-property proposal remain, label the same control **Continue in chat** and prepare a clearly non-approving resolution message containing the complete contract and unresolved decisions. Claude Chat exposes no documented artifact API that can append form state to the parent conversation, so do not fake automatic submission or use undocumented `postMessage` hooks. A button click alone must not trigger HubSpot or Vibe calls.
+
+Do not skip directly to Markdown because artifact support is uncertain. Attempt the inline HTML artifact first. Fall back only when the host actually cannot create or render it, rendering fails, or its selections cannot be recovered. Then render this authoritative five-column Markdown table:
 
 | Vibe source field | Representative value | HubSpot destination property | Value handling | Status |
 |---|---|---|---|---|
@@ -109,24 +124,23 @@ Contract requirements:
 - Show exactly one row for every exported field in the current transfer; never silently omit or combine fields. `row_num` and `created_at` are separate `NOT MAPPED` rows when present.
 - In `Vibe source field`, use a human-readable label only when the live Vibe response, schema, or column metadata explicitly supplies that label for the exact exported field. Otherwise show the exact source key unchanged. Never invent a label by stripping prefixes, replacing underscores, title-casing, or borrowing the skill's semantic name.
 - Retain the exact Vibe source key internally even when an authoritative label is displayed.
-- Show the non-Vibe activity field as `Bridge-generated timestamp`; do not present it as Vibe source data.
-- Show mandatory bridge mappings first as `INTEGRATION REQUIRED`.
+- Show mandatory integration mappings first as `INTEGRATION REQUIRED`.
 - Show predefined mappings as preselected `SUGGESTED — REVIEW` rows.
 - Use only live, writable, type-compatible HubSpot properties as default candidates. A compatible text type alone does not establish equivalent meaning.
 - Never use masked, redacted, or preview-only content as a representative value.
-- Keep unsupported fields visible as `NOT MAPPED`.
+- Keep unsupported fields visible as `NOT MAPPED` with a gray row background.
 - Summarize counts for integration-required, suggested, user-selected, decision-required, not-mapped, and incompatible rows.
 
-Immediately below the table, show this status guide:
+Immediately below the HTML artifact table, show a **Status legend**. Render each enum as a colored status chip using the exact same CSS class and colors as its table status. In the Markdown fallback, use the same legend title and bold plain-text enum labels; color is not required.
 
-- **INTEGRATION REQUIRED:** mandatory for the Vibe–HubSpot bridge and cannot be redirected or removed.
+- **INTEGRATION REQUIRED:** mandatory for the Vibe–HubSpot integration and cannot be redirected or removed.
 - **SUGGESTED — REVIEW:** predefined compatible mapping; the user must still review it.
 - **SELECTED BY YOU:** destination explicitly selected by the user.
 - **DECISION REQUIRED:** user must select a destination or leave the field unmapped.
 - **NOT MAPPED:** field will not be transferred.
 - **INCOMPATIBLE:** no safe compatible destination exists.
 
-Ask exactly whether the user approves **Mapping Contract revision N as the schema for the next HubSpot write proposal**. State that this approval does not authorize Vibe credit spend, property creation, associations, or any HubSpot record write. Silence is not approval.
+When the user pastes and sends the artifact's complete canonical approval message, re-fetch the live HubSpot schema before accepting it. Verify that every selected destination still exists with the same internal name and type, remains writable, and that both fixed integration properties remain valid. If the schema differs from the artifact snapshot, reject the stale approval, create a new contract revision, and render it again. Otherwise validate the message against the current revision and echo the contract as approved without asking for a redundant second confirmation. The sent message is explicit mapping approval; an artifact button click alone is not. A non-approving resolution message must never freeze the contract; resolve its decisions and render a revised contract. For the Markdown fallback, ask exactly whether the user approves **Mapping Contract revision N as the schema for the next HubSpot write proposal**. Mapping approval does not authorize Vibe credit spend, property creation, associations, or any HubSpot record write. Silence is not approval.
 
 After approval, freeze the contract. Any source field, destination, value handling, custom-property proposal, or unmapped decision change creates a new revision and requires mapping approval again.
 
@@ -134,7 +148,7 @@ Use these user-facing `Value handling` values:
 
 - **As provided:** source value is unchanged.
 - **Format-normalized:** only destination-required syntax changes; preserve the original value and show the exact change.
-- **Generated at write time:** metadata created by this bridge, currently limited to `vibe_prospecting_last_modified`.
+- **Generated at write time:** integration activity metadata, currently limited to `vibe_prospecting_last_modified`.
 - **Connector safety control:** documented non-business value used only to suppress an unwanted connector default.
 - **Not transferred:** no value will be written for this source field.
 

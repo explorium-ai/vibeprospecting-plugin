@@ -32,30 +32,56 @@ Build one self-contained HTML document with inline CSS and JavaScript. It must n
 The artifact must:
 
 - display `REQUIRED REVIEW — HUBSPOT MAPPING CONTRACT`, `Status: AWAITING MAPPING APPROVAL`, and `Contract revision: N` prominently;
+- state that destination properties were loaded from the user's connected HubSpot account for this contract revision;
 - render exactly these five visible columns:
 
 | Vibe source field | Representative value | HubSpot destination property | Value handling | Status |
 |---|---|---|---|---|
-| Authoritative Vibe label or exact source key | Unmasked value or `unavailable` | Interactive destination selector | User-facing handling label | Live contract status |
+| Authoritative Vibe label or exact source key | Unmasked value or `unavailable` | Interactive destination selector or fixed text | User-facing handling label | Colored status chip |
 
-- use a native `<select>` or accessible searchable combobox for every editable destination;
+- use a native `<select>` or accessible searchable combobox only for editable destinations;
+- render the fixed record-ID and transfer-timestamp destinations as plain text, never disabled dropdowns;
+- show `INTEGRATION REQUIRED` in the Status column for both fixed rows;
 - preselect predefined mappings as `SUGGESTED — REVIEW`;
-- render `INTEGRATION REQUIRED` rows as visible, read-only controls;
-- populate options only from the live, writable HubSpot properties supplied to the artifact;
-- show destination labels and types while retaining internal names in structured selection data rather than adding a visible column;
+- populate options only from the live, writable properties retrieved from the user's connected HubSpot account with `search_properties` and, when needed, `get_properties`; never use a static destination list;
+- use the HubSpot internal property name as the selection identity while showing the label and type;
+- enforce one-to-one mapping: a destination internal name selected or fixed in one row is unavailable in every other row, while sentinel choices such as `Leave unmapped` may repeat;
+- immediately release a destination when its row changes selection and disable approval if duplicate destination identities are ever present;
 - update the row status and summary counts immediately when the selection changes;
+- give every `NOT MAPPED` row a gray background in addition to its gray status chip;
 - keep `row_num`, `created_at`, unsupported fields, and every other exported column visible;
-- show the complete status legend below the table;
-- provide `Submit selections for review` when the host supports structured artifact output; otherwise provide `Copy selections for review`, copying a complete plain-text or JSON contract that the user can paste into chat;
+- show a **Status legend** below the table;
+- render every legend enum with the same status-chip CSS class and exact colors used in table rows;
+- provide one primary action control and no separate copy button;
 - remain keyboard-usable and readable on narrow screens.
 
-The artifact is a review surface, not approval by itself. After receiving its selections, echo the complete revised Mapping Contract in chat and ask for explicit mapping approval.
+Render the fixed rows only after the live schema confirms `vibe_prospecting_record_id` as writable single-line text and `vibe_prospecting_last_modified` as writable date-time. If either property is absent or has the wrong type, block Mapping Contract approval, complete the separately approved property-creation workflow, rediscover the properties, and build a new revision.
 
-Do not preemptively choose Markdown because artifact support is uncertain. Use the five-column Markdown table only if the host actually cannot create or render an inline HTML artifact, artifact rendering fails, or neither structured return nor copy/paste can recover the selected contract.
+The fixed rows are:
+
+- Vibe `business_id` or `prospect_id` → `Vibe Prospecting Record ID`, status `INTEGRATION REQUIRED`;
+- `Generated transfer timestamp` → `Vibe Prospecting Last Modified`, status `INTEGRATION REQUIRED`, value handling `Generated at write time`.
+
+Do not expose internal implementation terminology in the table.
+
+Claude Chat does not expose a documented artifact API for submitting form state into the parent conversation. Do not use undocumented `postMessage` events or imply that a button click updated the agent.
+
+When no row is `DECISION REQUIRED`, label the primary control **Approve mapping**. On click:
+
+1. Validate that no destination is duplicated, both fixed rows have `INTEGRATION REQUIRED`, and every selected destination belongs to the live schema snapshot.
+2. Serialize the complete contract revision, including exact source keys and destination labels, internal names, types, value handling, and statuses.
+3. Prepare one canonical chat message that states approval and contains that complete contract.
+4. Use the Clipboard API to place the message on the clipboard and show `Approval prepared — paste and send it in chat to continue`. If clipboard access fails, display the same message in a read-only text area for manual transfer.
+
+When any row is `DECISION REQUIRED`, use that same primary control but label it **Continue in chat**. Prepare a clearly non-approving message containing the complete contract, every unresolved row, and every custom-property proposal. This message lets the agent continue the separately approved property-creation or decision workflow; it must not state approval or freeze the contract.
+
+Do not render a separate clipboard control. Clicking either artifact button state alone must not authorize or trigger HubSpot or Vibe calls. A pasted **Approve mapping** message is the actual mapping-approval boundary. After the user sends it, re-fetch the live HubSpot schema and compare it with the artifact snapshot before accepting approval. If any selected property changed, became read-only, disappeared, or either fixed property is invalid, reject the stale approval and render a new revision. Otherwise validate the message, echo the Mapping Contract as approved, and do not ask for a redundant second confirmation.
+
+Do not preemptively choose Markdown because artifact support is uncertain. Use the five-column Markdown table only if the host actually cannot create or render an inline HTML artifact, artifact rendering fails, or the selected contract cannot be recovered.
 
 `Vibe source field` is provenance-sensitive. Use a human-readable label only when the live Vibe tool response, schema, or column metadata explicitly supplies that label for the exact exported field. Otherwise display the exact exported key unchanged. Never infer a label by removing a prefix, replacing underscores, title-casing, or reusing the semantic labels in this reference. Preserve the exact source key internally even when an authoritative label is displayed.
 
-The bridge-generated activity value is not a Vibe source field. Display its required row as `Bridge-generated timestamp`; do not attribute it to Vibe.
+The generated activity value is not a Vibe source field. Display its required row as `Generated transfer timestamp`; do not attribute it to Vibe.
 
 Keep HubSpot internal property names and destination types in the frozen contract data for execution, but do not add them as primary table columns. Show the exact internal names and values later in the write proposal and tool-call details.
 
@@ -63,7 +89,7 @@ Use only these user-facing `Value handling` labels:
 
 - `As provided`: source value is unchanged.
 - `Format-normalized`: only syntax required by the destination changes.
-- `Generated at write time`: bridge-generated metadata.
+- `Generated at write time`: integration activity metadata.
 - `Connector safety control`: documented non-business value that suppresses an unwanted connector default.
 - `Not transferred`: no value is written for the source field.
 
@@ -85,7 +111,7 @@ A selection is not accepted until it is returned from the artifact and echoed in
 
 Use these exact statuses and show their meanings directly below every Mapping Contract:
 
-- `INTEGRATION REQUIRED`: mandatory bridge mapping; the user cannot redirect or remove it.
+- `INTEGRATION REQUIRED`: mandatory integration mapping; the user cannot redirect or remove it.
 - `SUGGESTED — REVIEW`: predefined compatible mapping; the user must still review it.
 - `SELECTED BY YOU`: destination explicitly selected by the user.
 - `DECISION REQUIRED`: the user must select a destination or leave the field unmapped.
