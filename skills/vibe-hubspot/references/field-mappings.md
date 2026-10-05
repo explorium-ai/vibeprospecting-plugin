@@ -98,6 +98,7 @@ Mapping approval freezes the source field, destination internal name, type, and 
 | Mobile phone | Mobile phone number | Predefined | Use only when Vibe identifies it as mobile. |
 | Current job title | Job title | Predefined | Raw value. |
 | LinkedIn profile URL | LinkedIn profile URL | Predefined | Exact URL when a writable property with that meaning exists. |
+| Current company name | Contact company name | Predefined | Write the raw Vibe company name to the contact's writable Company name property, typically internal name `company`, after live schema validation. This is a contact text field; it does not create or change a company association. |
 | Current company identity | Associated company | Manual | Resolve the HubSpot company separately. Association requires its own planned action, `tool_guidance`, and explicit approval. |
 | Company domain | Company lookup evidence | Manual | Use for company resolution; do not write it into an unrelated contact property. |
 | Contact city/state/country | Contact location fields | Predefined | Only when Vibe identifies them as the contact's location. |

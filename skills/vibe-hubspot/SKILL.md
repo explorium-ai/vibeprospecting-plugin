@@ -2,7 +2,7 @@
 name: "vibe-hubspot"
 description: "Safely bridge Vibe Prospecting data into HubSpot companies and contacts. Use when a user asks to push, insert, sync, enrich, update, or map Vibe or Explorium records into HubSpot CRM."
 metadata:
-  version: "0.3.0"
+  version: "0.3.1"
 ---
 
 # Vibe Prospecting → HubSpot
