@@ -23,11 +23,35 @@ The Mapping Contract is the authoritative schema for the transfer, not an inform
 
 The contract covers every exported column present in the current transfer dataset, not every field Vibe could theoretically return. Use exactly one row per exported column, including blank, specialized, identifier, and metadata columns. Never combine `row_num` and `created_at`.
 
-Use this five-column presentation:
+### Inline HTML artifact first
+
+The primary renderer is an **inline HTML artifact**. On Claude, explicitly create an `inline HTML artifact`; HTML inside a Markdown code fence does not satisfy this requirement. Attempt the artifact before any Markdown fallback.
+
+Build one self-contained HTML document with inline CSS and JavaScript. It must not load external scripts, fonts, images, analytics, or network resources, and it must never call HubSpot or Vibe directly. Treat every dynamic Vibe and HubSpot value as untrusted, including source keys, labels, representative values, property labels, internal names, types, and enum options. The only permitted data interpolation is a JSON payload inside `<script type="application/json" id="contract-data">`: serialize it as JSON, replace `<`, `>`, `&`, U+2028, and U+2029 with their Unicode escape sequences, then parse the element's `textContent`. Construct controls with DOM APIs such as `createElement`, `textContent`, and `value`. Never interpolate live data anywhere else, including HTML markup, executable JavaScript source, CSS, or event-handler attributes; never use `innerHTML` or `document.write`.
+
+The artifact must:
+
+- display `REQUIRED REVIEW — HUBSPOT MAPPING CONTRACT`, `Status: AWAITING MAPPING APPROVAL`, and `Contract revision: N` prominently;
+- render exactly these five visible columns:
 
 | Vibe source field | Representative value | HubSpot destination property | Value handling | Status |
 |---|---|---|---|---|
-| Authoritative Vibe label or exact source key | Unmasked value or `unavailable` | Live property label or `Leave unmapped` | User-facing handling label | Contract status |
+| Authoritative Vibe label or exact source key | Unmasked value or `unavailable` | Interactive destination selector | User-facing handling label | Live contract status |
+
+- use a native `<select>` or accessible searchable combobox for every editable destination;
+- preselect predefined mappings as `SUGGESTED — REVIEW`;
+- render `INTEGRATION REQUIRED` rows as visible, read-only controls;
+- populate options only from the live, writable HubSpot properties supplied to the artifact;
+- show destination labels and types while retaining internal names in structured selection data rather than adding a visible column;
+- update the row status and summary counts immediately when the selection changes;
+- keep `row_num`, `created_at`, unsupported fields, and every other exported column visible;
+- show the complete status legend below the table;
+- provide `Submit selections for review` when the host supports structured artifact output; otherwise provide `Copy selections for review`, copying a complete plain-text or JSON contract that the user can paste into chat;
+- remain keyboard-usable and readable on narrow screens.
+
+The artifact is a review surface, not approval by itself. After receiving its selections, echo the complete revised Mapping Contract in chat and ask for explicit mapping approval.
+
+Do not preemptively choose Markdown because artifact support is uncertain. Use the five-column Markdown table only if the host actually cannot create or render an inline HTML artifact, artifact rendering fails, or neither structured return nor copy/paste can recover the selected contract.
 
 `Vibe source field` is provenance-sensitive. Use a human-readable label only when the live Vibe tool response, schema, or column metadata explicitly supplies that label for the exact exported field. Otherwise display the exact exported key unchanged. Never infer a label by removing a prefix, replacing underscores, title-casing, or reusing the semantic labels in this reference. Preserve the exact source key internally even when an authoritative label is displayed.
 
@@ -45,7 +69,7 @@ Use only these user-facing `Value handling` labels:
 
 ### Destination choices
 
-For editable rows, attempt a host-native dropdown, searchable selector, or structured choice populated from the live HubSpot schema. Order choices as follows:
+For editable rows, order choices as follows:
 
 1. Predefined exact mapping when it exists.
 2. Other writable properties with equivalent meaning and compatible type.
@@ -55,7 +79,7 @@ For editable rows, attempt a host-native dropdown, searchable selector, or struc
 
 Do not flood the initial selector with every text property. Exclude read-only, calculated, hidden, and structurally incompatible properties. `Show other writable properties` may reveal the broader list, but label semantically incompatible choices and require explicit manual selection.
 
-A selection is not accepted until it is echoed in the complete Mapping Contract. If the host cannot render or return interactive selections, use the Markdown table fallback; never skip the contract.
+A selection is not accepted until it is returned from the artifact and echoed in the complete Mapping Contract. If the artifact path fails under the conditions above, use the Markdown table fallback; never skip the contract.
 
 ### Mapping statuses
 

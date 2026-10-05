@@ -2,7 +2,7 @@
 name: "vibe-hubspot"
 description: "Safely bridge Vibe Prospecting data into HubSpot companies and contacts. Use when a user asks to push, insert, sync, enrich, update, or map Vibe or Explorium records into HubSpot CRM."
 metadata:
-  version: "0.4.0"
+  version: "0.4.1"
 ---
 
 # Vibe Prospecting → HubSpot
@@ -87,16 +87,18 @@ Begin the mapping output before ancillary explanations with the literal top-leve
 
 Show **Status: AWAITING MAPPING APPROVAL** and **Contract revision: N** directly above the mapping.
 
-Prefer a host-native dropdown, searchable selector, or structured choice control for each editable mapping row when the host supports it. Populate choices from the live HubSpot schema and show the property label and type. Keep HubSpot internal property names for execution and the exact write proposal, not as a Mapping Contract column. Include:
+The first rendering attempt **must create an inline HTML artifact**. On Claude, explicitly use an `inline HTML artifact`; do not merely print HTML in a Markdown code fence. Use the artifact as the primary Mapping Contract UI and render a native `<select>` dropdown or accessible searchable selector in every editable destination cell. Follow the artifact behavior in [`references/field-mappings.md`](references/field-mappings.md).
+
+Populate selector choices only from the live HubSpot schema and show the property label and type. Keep HubSpot internal property names in the artifact's structured selection data for execution, not as a visible Mapping Contract column. Include:
 
 - compatible writable HubSpot properties, with predefined exact mappings first;
 - `Leave unmapped`;
 - `Show other writable properties`;
 - `Propose a new custom property`.
 
-Selecting `Propose a new custom property` creates only a separately approved proposal. Keep the row `DECISION REQUIRED` until the property is created, rediscovered in the live schema, and selected in a revised contract. Do not claim a dropdown exists unless the host rendered one.
+Selecting `Propose a new custom property` creates only a separately approved proposal. Keep the row `DECISION REQUIRED` until the property is created, rediscovered in the live schema, and selected in a revised contract.
 
-If interactive controls are unavailable, fail to render, or cannot return a structured choice, render this authoritative five-column fallback:
+Do not skip directly to Markdown because artifact support is uncertain. Attempt the inline HTML artifact first. Fall back only when the host actually cannot create or render an inline HTML artifact, the artifact fails, or neither structured return nor copy/paste can recover the user's selections. Then render this authoritative five-column Markdown table:
 
 | Vibe source field | Representative value | HubSpot destination property | Value handling | Status |
 |---|---|---|---|---|
