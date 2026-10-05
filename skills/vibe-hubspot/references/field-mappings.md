@@ -21,15 +21,27 @@ Never summarize, infer, translate, truncate, split a name, regroup list items, c
 
 The Mapping Contract is the authoritative schema for the transfer, not an informational suggestion. Present it under the exact top-level heading `REQUIRED REVIEW — HUBSPOT MAPPING CONTRACT`, before secondary explanations.
 
-Use one row for every exported Vibe field and expose:
+The contract covers every exported column present in the current transfer dataset, not every field Vibe could theoretically return. Use exactly one row per exported column, including blank, specialized, identifier, and metadata columns. Never combine `row_num` and `created_at`.
 
-- Vibe source column;
-- representative unmasked value, or `unavailable`;
-- selected HubSpot label;
-- HubSpot internal property name;
-- live destination type;
-- value form or treatment;
-- mapping status and warning.
+Use this five-column presentation:
+
+| Vibe source field | Representative value | HubSpot destination property | Value handling | Status |
+|---|---|---|---|---|
+| Authoritative Vibe label or exact source key | Unmasked value or `unavailable` | Live property label or `Leave unmapped` | User-facing handling label | Contract status |
+
+`Vibe source field` is provenance-sensitive. Use a human-readable label only when the live Vibe tool response, schema, or column metadata explicitly supplies that label for the exact exported field. Otherwise display the exact exported key unchanged. Never infer a label by removing a prefix, replacing underscores, title-casing, or reusing the semantic labels in this reference. Preserve the exact source key internally even when an authoritative label is displayed.
+
+The bridge-generated activity value is not a Vibe source field. Display its required row as `Bridge-generated timestamp`; do not attribute it to Vibe.
+
+Keep HubSpot internal property names and destination types in the frozen contract data for execution, but do not add them as primary table columns. Show the exact internal names and values later in the write proposal and tool-call details.
+
+Use only these user-facing `Value handling` labels:
+
+- `As provided`: source value is unchanged.
+- `Format-normalized`: only syntax required by the destination changes.
+- `Generated at write time`: bridge-generated metadata.
+- `Connector safety control`: documented non-business value that suppresses an unwanted connector default.
+- `Not transferred`: no value is written for the source field.
 
 ### Destination choices
 
@@ -47,23 +59,22 @@ A selection is not accepted until it is echoed in the complete Mapping Contract.
 
 ### Mapping statuses
 
-Use these exact statuses:
+Use these exact statuses and show their meanings directly below every Mapping Contract:
 
-- `REQUIRED — LOCKED`
-- `PREDEFINED — REVIEW`
-- `USER SELECTED`
-- `USER DECISION NEEDED`
-- `UNMAPPED`
-- `INCOMPATIBLE`
-- `NEW PROPERTY PROPOSED`
+- `INTEGRATION REQUIRED`: mandatory bridge mapping; the user cannot redirect or remove it.
+- `SUGGESTED — REVIEW`: predefined compatible mapping; the user must still review it.
+- `SELECTED BY YOU`: destination explicitly selected by the user.
+- `DECISION REQUIRED`: the user must select a destination or leave the field unmapped.
+- `NOT MAPPED`: field will not be transferred.
+- `INCOMPATIBLE`: no safe compatible destination exists.
 
-Required bridge fields are locked. A new-property selection is only a proposal for a separately approved property-creation write.
+`Propose a new custom property` does not have its own status. Keep that row `DECISION REQUIRED` until the property is separately approved and created, rediscovered in the live HubSpot schema, and selected in a revised contract.
 
 ### Approval boundary
 
-Label each complete rendering `Contract revision: N` and `Status: AWAITING MAPPING APPROVAL`. Summarize required, predefined, user-selected, unmapped, and new-property counts.
+Label each complete rendering `Contract revision: N` and `Status: AWAITING MAPPING APPROVAL`. Summarize integration-required, suggested, user-selected, decision-required, not-mapped, and incompatible counts.
 
-Mapping approval freezes the source field, destination internal name, type, and treatment for that revision. It does not approve Vibe credit spend, property creation, associations, overwrites, or record writes. Any mapping change requires a complete revised contract and new mapping approval.
+Mapping approval freezes the exact source key, destination internal name, type, and value handling for that revision. It does not approve Vibe credit spend, property creation, associations, overwrites, or record writes. Any mapping change requires a complete revised contract and new mapping approval.
 
 ## Company mappings
 

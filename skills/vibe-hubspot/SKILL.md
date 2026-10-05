@@ -2,7 +2,7 @@
 name: "vibe-hubspot"
 description: "Safely bridge Vibe Prospecting data into HubSpot companies and contacts. Use when a user asks to push, insert, sync, enrich, update, or map Vibe or Explorium records into HubSpot CRM."
 metadata:
-  version: "0.3.1"
+  version: "0.3.2"
 ---
 
 # Vibe Prospecting → HubSpot
@@ -86,41 +86,54 @@ Begin the mapping output before ancillary explanations with the literal top-leve
 
 Show **Status: AWAITING MAPPING APPROVAL** and **Contract revision: N** directly above the mapping.
 
-Prefer a host-native dropdown, searchable selector, or structured choice control for each editable mapping row when the host supports it. Populate choices from the live HubSpot schema and show each property's label, internal name, and type. Include:
+Prefer a host-native dropdown, searchable selector, or structured choice control for each editable mapping row when the host supports it. Populate choices from the live HubSpot schema and show the property label and type. Keep HubSpot internal property names for execution and the exact write proposal, not as a Mapping Contract column. Include:
 
 - compatible writable HubSpot properties, with predefined exact mappings first;
 - `Leave unmapped`;
 - `Show other writable properties`;
 - `Propose a new custom property`.
 
-Selecting `Propose a new custom property` creates only a separately approved proposal. It never creates the property or authorizes a write. Do not claim a dropdown exists unless the host rendered one.
+Selecting `Propose a new custom property` creates only a separately approved proposal. Keep the row `DECISION REQUIRED` until the property is created, rediscovered in the live schema, and selected in a revised contract. Do not claim a dropdown exists unless the host rendered one.
 
-If interactive controls are unavailable, fail to render, or cannot return a structured choice, render this authoritative fallback:
+If interactive controls are unavailable, fail to render, or cannot return a structured choice, render this authoritative five-column fallback:
 
-| Vibe source field | Representative value | HubSpot destination | Internal name | Destination type | Treatment | Status |
-|---|---|---|---|---|---|---|
-| Source column | Unmasked value or `unavailable` | Property label or `Leave unmapped` | Internal name or `—` | Live type or `—` | raw/format-normalized/etc. | REQUIRED — LOCKED / PREDEFINED — REVIEW / USER DECISION NEEDED / UNMAPPED |
+| Vibe source field | Representative value | HubSpot destination property | Value handling | Status |
+|---|---|---|---|---|
+| Authoritative Vibe label or exact source key | Unmasked value or `unavailable` | Property label or `Leave unmapped` | As provided / Format-normalized / Generated at write time / Not transferred | INTEGRATION REQUIRED / SUGGESTED — REVIEW / DECISION REQUIRED / NOT MAPPED |
 
 Contract requirements:
 
-- Show every exported field in the current transfer; never silently omit one.
-- Show required bridge mappings first as `REQUIRED — LOCKED`.
-- Show predefined mappings as preselected but still requiring review.
+- Show exactly one row for every exported field in the current transfer; never silently omit or combine fields. `row_num` and `created_at` are separate `NOT MAPPED` rows when present.
+- In `Vibe source field`, use a human-readable label only when the live Vibe response, schema, or column metadata explicitly supplies that label for the exact exported field. Otherwise show the exact source key unchanged. Never invent a label by stripping prefixes, replacing underscores, title-casing, or borrowing the skill's semantic name.
+- Retain the exact Vibe source key internally even when an authoritative label is displayed.
+- Show the non-Vibe activity field as `Bridge-generated timestamp`; do not present it as Vibe source data.
+- Show mandatory bridge mappings first as `INTEGRATION REQUIRED`.
+- Show predefined mappings as preselected `SUGGESTED — REVIEW` rows.
 - Use only live, writable, type-compatible HubSpot properties as default candidates. A compatible text type alone does not establish equivalent meaning.
 - Never use masked, redacted, or preview-only content as a representative value.
-- Keep unsupported fields visible as `UNMAPPED`.
-- Summarize counts for required, predefined, user-selected, unmapped, and newly proposed properties.
+- Keep unsupported fields visible as `NOT MAPPED`.
+- Summarize counts for integration-required, suggested, user-selected, decision-required, not-mapped, and incompatible rows.
+
+Immediately below the table, show this status guide:
+
+- **INTEGRATION REQUIRED:** mandatory for the Vibe–HubSpot bridge and cannot be redirected or removed.
+- **SUGGESTED — REVIEW:** predefined compatible mapping; the user must still review it.
+- **SELECTED BY YOU:** destination explicitly selected by the user.
+- **DECISION REQUIRED:** user must select a destination or leave the field unmapped.
+- **NOT MAPPED:** field will not be transferred.
+- **INCOMPATIBLE:** no safe compatible destination exists.
 
 Ask exactly whether the user approves **Mapping Contract revision N as the schema for the next HubSpot write proposal**. State that this approval does not authorize Vibe credit spend, property creation, associations, or any HubSpot record write. Silence is not approval.
 
-After approval, freeze the contract. Any source field, destination, treatment, custom-property proposal, or unmapped decision change creates a new revision and requires mapping approval again.
+After approval, freeze the contract. Any source field, destination, value handling, custom-property proposal, or unmapped decision change creates a new revision and requires mapping approval again.
 
-Use only these contract value forms:
+Use these user-facing `Value handling` values:
 
-- **Raw:** source value is unchanged.
+- **As provided:** source value is unchanged.
 - **Format-normalized:** only destination-required syntax changes; preserve the original value and show the exact change.
-- **Bridge-generated:** metadata created by this bridge, currently limited to `vibe_prospecting_last_modified`.
-- **Connector-control:** a documented non-business value used only to suppress an unwanted connector default.
+- **Generated at write time:** metadata created by this bridge, currently limited to `vibe_prospecting_last_modified`.
+- **Connector safety control:** documented non-business value used only to suppress an unwanted connector default.
+- **Not transferred:** no value will be written for this source field.
 
 Never summarize, infer, translate, truncate, split names, regroup values, convert categories, or derive business values.
 
