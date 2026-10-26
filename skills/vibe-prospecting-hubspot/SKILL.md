@@ -1,6 +1,6 @@
 ---
 name: "vibe-prospecting-hubspot"
-description: "Field mapping from Vibe Prospecting data (prospects and businesses) to HubSpot Contacts and Companies, using the real field names on both sides. Use this skill whenever the user asks how Vibe Prospecting fields map to HubSpot, which HubSpot property a Vibe Prospecting field goes to, which custom properties are needed, or wants to send Vibe Prospecting results into HubSpot, even if they don't say the word mapping."
+description: Field mapping from Vibe Prospecting data (prospects and businesses) to HubSpot Contacts and Companies, using the real field names on both sides. Use this skill whenever the user asks how Vibe Prospecting fields map to HubSpot, which HubSpot property a Vibe Prospecting field goes to, which custom properties are needed, or wants to send Vibe Prospecting results into HubSpot, even if they don't say the word "mapping".
 ---
 
 # Vibe Prospecting → HubSpot field mapping
@@ -9,7 +9,7 @@ Vibe Prospecting **prospects** map to HubSpot **Contacts**. Vibe Prospecting **b
 
 Vibe Prospecting field names are the column names in Vibe Prospecting results. HubSpot properties are shown with their label and internal name.
 
-Where a Vibe Prospecting field has no HubSpot property of the same type, it maps to a custom HubSpot property with the `VP` prefix (internal name starts with `vp_`). Custom properties are marked **(custom)**. Create a custom property in HubSpot before writing to it, with explicit approval for that setup write. Reuse existing properties; never recreate or silently change their definitions.
+Where a Vibe Prospecting field has no HubSpot property of the same type, it maps to a custom HubSpot property with the `VP` prefix (internal name starts with `vp_`). Custom properties are marked **(custom)**. Create a custom property in HubSpot before writing to it.
 
 ## Contacts: Vibe Prospecting prospect → HubSpot Contact
 
@@ -36,7 +36,7 @@ Where a Vibe Prospecting field has no HubSpot property of the same type, it maps
 | `prospect_skills` | VP Skills **(custom)** | `vp_skills` | Multi-line text |
 | `prospect_interests` | VP Interests **(custom)** | `vp_interests` | Multi-line text |
 
-For newly inserted contacts, set **Lead Status** (`hs_lead_status`) to **New**. Use the live property's internal option value (normally `NEW`), not the display label. Include this assignment in the insert authorization. Never reset an existing contact's status; if the option cannot be confirmed, stop and explain rather than guessing another value.
+* Set hubspot field 'Lead Status' to New for newely added contacts
 
 ## Companies: Vibe Prospecting business → HubSpot Company
 
@@ -61,13 +61,3 @@ For newly inserted contacts, set **Lead Status** (`hs_lead_status`) to **New**. 
 | `business_business_intent_topics` | VP Intent Topics **(custom)** | `vp_intent_topics` | Multi-line text |
 
 `row_num` and `created_at` are export metadata and are not mapped.
-
-## Use during export and insertion
-
-- For mapping questions, answer from the tables; do not run exports or mutate HubSpot. These are fixed mappings, not a mapping-widget workflow.
-- For a transfer, follow the `vibe-prospecting` skill and active platform guide: match or fetch, enrich, show and render the sample, then state the full-export cost and obtain export approval before exporting. Any required pre-sample paid-operation approval is separate. Reuse already authorized exports and results; a sample alone is not the full dataset.
-- Load the full exported dataset using the live paging schema. Use the exact source keys above; omit absent or blank fields and leave other columns unmapped. Preserve raw values, including JSON text and ranges. Do not split names, infer missing values, or convert ranges into numeric counts or amounts.
-- Use the official HubSpot connector and its live schemas. Confirm the intended account. For populated custom mappings, check the exact destination property on the correct object and propose only missing properties, with the labels and text types above. Obtain explicit setup approval before creating them; no need to create properties for absent source data. If a required property is unavailable or incompatible, stop affected rows and explain; do not silently substitute another destination.
-- Before inserting, deduplicate both the source set and HubSpot using exact contact emails or company domains. Batch distinct keys with schema-supported `IN` or OR-equality filters, split only for live limits, and finish pagination. Check every authoritative contact email. Missing identity, conflicting source rows, failed/incomplete searches, or ambiguous matches block affected rows. Existing matches are skipped, never updated. Repeat the batched check immediately before writes if the earlier results predate an approval wait or intervening work.
-- Obtain authorization for the bounded insert scope, including new-contact Lead Status. Custom-property creation and paid export are not authorized by a mapping question. Insert in connector-sized batches without a mapping artifact or per-field approval; do not add owners, associations, updates, or deletes.
-- Report actual created IDs and links. Read created records before claiming mapped values are verified. On a failed or uncertain write, stop further inserts, reconcile submitted rows, and do not blindly retry or issue corrective writes.
