@@ -286,6 +286,7 @@ Chain company discovery, signal-based filtering, content enrichment, and contact
 | Browse use cases and prompts            | [Use cases and example workflows](#use-cases-and-example-workflows)         |
 | Platform differences                    | [Supported platforms](#supported-platforms)                                 |
 | Full skill and tool parameter reference | [SKILL.md](skills/vibe-prospecting/SKILL.md)                                |
+| Vibe → HubSpot field mappings and inserts | [HubSpot mapping skill](skills/vibe-prospecting-hubspot/SKILL.md)             |
 | Open-source MCP server                  | [vibeprospecting-mcp](https://github.com/explorium-ai/vibeprospecting-mcp)  |
 
 
