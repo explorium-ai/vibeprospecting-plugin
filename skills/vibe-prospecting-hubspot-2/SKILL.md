@@ -1,6 +1,6 @@
 ---
-name: vibe-prospecting-hubspot
-description: Field mapping from Vibe Prospecting prospects and businesses to HubSpot Contacts and Companies, using real field names on both sides. Use this skill whenever Vibe Prospecting prospect or business data is inserted into or updated in HubSpot, including requests like "get prospects from Vibe and insert them into HubSpot", and whenever the user asks how Vibe Prospecting fields map to HubSpot properties.
+name: "vibe-prospecting-hubspot-2"
+description: "Field mapping from Vibe Prospecting prospects and businesses to HubSpot Contacts and Companies, using real field names on both sides. Use this skill whenever Vibe Prospecting prospect or business data is inserted into or updated in HubSpot, including requests like \"get prospects from Vibe and insert them into HubSpot\", and whenever the user asks how Vibe Prospecting fields map to HubSpot properties."
 ---
 
 # Vibe Prospecting → HubSpot field mapping
@@ -21,6 +21,23 @@ Vibe Prospecting field names are the column names in Vibe Prospecting results. H
 Where no suitable existing HubSpot property was found, the field maps to a custom property with the `VP` prefix (internal name starts with `vp_`), marked **(custom)**. These must be created by the user in HubSpot before they can receive data.
 
 **To change a destination:** create the property yourself in HubSpot (Settings → Properties), or pick an existing one. Then edit the row in this file: update the HubSpot label, internal name, type and the custom marker. Keep the Vibe Prospecting field name unchanged. Reinstall the updated skill.
+
+## Show the field mapping before writing to HubSpot (required)
+
+After the Vibe Prospecting data is exported and before any record is created or updated in HubSpot, always show the user a field-mapping report for this specific push. Build it from a live check of the target HubSpot account, not from this file alone:
+
+1. Check every destination in the relevant table(s) below against the account. For enumeration destinations such as Lead Status, also confirm the required option exists.
+2. Check the exported data: note which Vibe fields actually have values for the rows being pushed.
+3. Present one table per object type being written, with these columns:
+
+| Vibe Prospecting field | HubSpot label | Internal name | In HubSpot? | Written in this push? |
+|---|---|---|---|---|
+
+   - **In HubSpot?**: ✅ Exists (mark standard vs custom where useful) or ❌ Missing.
+   - **Written in this push?**: ✅ Yes; ➖ No data (destination exists but the field is empty for these rows, with a short reason, e.g. "emails only were requested"); or ❌ Skipped (destination missing or cannot accept the value).
+   - Include every mapped field from the table, not only the ones being written, so the user sees what exists and what does not.
+   - Add rows for values set by this skill rather than from Vibe data (Lead Status on new contacts) and for associations being created (e.g. contact → existing company, with its ID).
+4. Then ask for approval of the write as usual. The mapping report does not replace the HubSpot record-level confirmation; show both, or combine them in one message.
 
 ## Contacts: Vibe Prospecting prospect → HubSpot Contact
 
