@@ -1,5 +1,5 @@
 ---
-name: "vibe-prospecting-hubspot-2"
+name: "vibe-prospecting-hubspot"
 description: "Field mapping from Vibe Prospecting prospects and businesses to HubSpot Contacts and Companies, using real field names on both sides. Use this skill whenever Vibe Prospecting prospect or business data is inserted into or updated in HubSpot, including requests like \"get prospects from Vibe and insert them into HubSpot\", and whenever the user asks how Vibe Prospecting fields map to HubSpot properties."
 ---
 
