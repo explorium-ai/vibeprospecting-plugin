@@ -1,7 +1,7 @@
 # Install the Vibe Prospecting → HubSpot mapping skill
 
 1. In Claude, open **Settings → Capabilities → Skills** (the section name may vary by Claude version). Enable skills if needed and choose the option to upload a skill.
-2. Upload `vibe-prospecting-hubspot.zip` from this repository's `dist/` directory. Upload the ZIP as-is, not the repository or plugin ZIP.
+2. Upload the separately distributed `vibe-prospecting-hubspot.zip`. Generated ZIPs are not stored in this repository. Upload the ZIP as-is, not the repository or plugin ZIP.
 3. Enable `vibe-prospecting-hubspot` and start a new conversation. Connect Vibe Prospecting and HubSpot separately when transferring data; installing the skill does not connect either service.
 
 The archive contains exactly one top-level folder:
