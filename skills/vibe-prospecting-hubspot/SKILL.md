@@ -2,7 +2,7 @@
 name: "vibe-prospecting-hubspot"
 description: "Field mapping from Vibe Prospecting prospects and businesses to HubSpot Contacts and Companies, using real field names on both sides. Use this skill whenever Vibe Prospecting prospect or business data is inserted into or updated in HubSpot, including requests like \"get prospects from Vibe and insert them into HubSpot\", and whenever the user asks how Vibe Prospecting fields map to HubSpot properties."
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Vibe Prospecting → HubSpot field mapping
@@ -17,12 +17,24 @@ Vibe Prospecting field names are the column names in Vibe Prospecting results. H
 
 - Never create or modify HubSpot property definitions or enumeration options.
 - Before writing, check that each mapped destination exists on the correct object (Contacts for prospects, Companies for businesses).
-- If a destination is missing, or cannot accept the raw value (for example a value that is not a valid option of an enumeration property), omit that field, report its HubSpot label and internal name, and continue with the other mapped fields.
-- Do not silently substitute another destination, and do not transform, split, truncate or derive values to make them fit.
+- For ordinary mapped fields, if a destination is missing or cannot accept the raw value (for example an invalid enumeration option), omit that field, report its HubSpot label and internal name, and continue with the other mapped fields. The list name below is required by default; skip it only when the user explicitly requests that exception.
+- Do not silently substitute another destination, and do not transform, split, truncate or derive values to make them fit. The only scoped exception is the additional-phone extraction described below; do not apply it to other fields.
 
-Where no suitable existing HubSpot property was found, the field maps to a custom property with the `VP` prefix (internal name starts with `vp_`), marked **(custom)**. These must be created by the user in HubSpot before they can receive data.
+Custom destinations are marked **(custom)** and must be created by the user in HubSpot before they can receive data. They use the `VP` label prefix and `vp_` internal-name prefix. Users may change these defaults in their own skill instance.
 
 **To change a destination:** create the property yourself in HubSpot (Settings → Properties), or pick an existing one. Then edit the row in this file: update the HubSpot label, internal name, type and the custom marker. Keep the Vibe Prospecting field name unchanged. Reinstall the updated skill.
+
+If you edit a destination in a mapping table, use that row's edited label, internal name, and type—not the default property names mentioned elsewhere in this file.
+
+## List name before export
+
+By default, before each new export for a HubSpot push, suggest a list name based on the user's request and conversation, then ask the user to approve it or provide a different name. Do not offer the dataset name as a default. If the user already explicitly supplied a name for this export, that is their confirmation; do not ask again. Do not proceed with an unconfirmed or blank name, or silently reuse one from a different export.
+
+The default destination on Contacts and Companies is **VP List Name** (`vp_list_name`, single-line text, custom). The user may explicitly choose a different existing destination for this push or explicitly ask to skip the list-name field. Honor that choice for this push without requiring a skill edit or reinstall. Do not infer permission to skip or change the destination from a missing property or general export approval. For a lasting change to the default, the user may edit this destination in the skill and reinstall it.
+
+Unless the user explicitly asked to skip the list name, check the chosen destination's live HubSpot property definition on every target object type before export. It must exist and accept the confirmed name. If missing or incompatible, identify its label, internal name, and object type, and ask the user to create/fix it manually, choose another existing property, or explicitly request skipping the list-name field. Stop the push before export until a usable destination is verified or the user explicitly requests skipping it. Never create properties or silently substitute a destination.
+
+When the list name is not skipped, write the confirmed name unchanged on every contact and company inserted or updated. Recheck the chosen destination before record writes; if it is no longer usable, stop until resolved or the user explicitly requests skipping it. If the user explicitly requests skipping it, omit the field and reflect that choice in the pre-write report. The name approval or skip request is not approval for export cost or HubSpot writes; retain the existing approval requirements. This is a field only: do not create a HubSpot list or add list memberships. Other fields retain ordinary mapping/reporting behavior without dedicated missing-field prompts.
 
 ## Show the field mapping before writing to HubSpot (required)
 
@@ -38,7 +50,8 @@ After the Vibe Prospecting data is exported and before any record is created or 
    - **In HubSpot?**: ✅ Exists (mark standard vs custom where useful) or ❌ Missing.
    - **Written in this push?**: ✅ Yes; ➖ No data (destination exists but the field is empty for these rows, with a short reason, e.g. "emails only were requested"); or ❌ Skipped (destination missing or cannot accept the value).
    - Include every mapped field from the table, not only the ones being written, so the user sees what exists and what does not.
-   - Add rows for values set by this skill rather than from Vibe data (Lead Status on new contacts) and for associations being created (e.g. contact → existing company, with its ID).
+   - One report row per mapping-table row; never merge rows (e.g. VP Additional Phone Number 1–3 are three rows).
+   - Put the list-name row first in each contact/company report table and bold its label and value so it stands out from other fields. Show the chosen destination or that the user explicitly requested skipping it. Unless explicitly skipped, stop if it cannot be written. Add rows for Lead Status on new contacts and associations being created (e.g. contact → existing company, with its ID).
 4. Then ask for approval of the write as usual. The mapping report does not replace the HubSpot record-level confirmation; show both, or combine them in one message.
 
 ## Contacts: Vibe Prospecting prospect → HubSpot Contact
@@ -49,6 +62,9 @@ After the Vibe Prospecting data is exported and before any record is created or 
 | `prospect_last_name` | Last Name | `lastname` | Single-line text |
 | `contact_professional_email` | Email | `email` | Single-line text |
 | `contact_mobile_phone` | Mobile Phone Number | `mobilephone` | Single-line text |
+| `contact_phone_numbers` (additional number 1; see extraction below) | VP Additional Phone Number 1 **(custom)** | `vp_additional_phone_number_1` | Single-line text |
+| `contact_phone_numbers` (additional number 2; see extraction below) | VP Additional Phone Number 2 **(custom)** | `vp_additional_phone_number_2` | Single-line text |
+| `contact_phone_numbers` (additional number 3; see extraction below) | VP Additional Phone Number 3 **(custom)** | `vp_additional_phone_number_3` | Single-line text |
 | `prospect_job_title` | Job Title | `jobtitle` | Single-line text |
 | `prospect_company_name` | Company Name | `company` | Single-line text |
 | `prospect_company_website` | Website URL | `website` | Single-line text |
@@ -67,6 +83,18 @@ After the Vibe Prospecting data is exported and before any record is created or 
 | `prospect_interests` | VP Interests **(custom)** | `vp_interests` | Multi-line text |
 
 **Lead Status.** For contacts newly created from Vibe Prospecting data, set Lead Status (`hs_lead_status`) to the option labelled **New**, internal value `NEW`. Never change Lead Status on existing contacts. If `hs_lead_status` in the target account has no option labelled New, skip it and report; do not create or substitute an option.
+
+### Additional phone extraction
+
+Keep **`contact_mobile_phone` → `mobilephone` unchanged**. Extra numbers come from the separate **`contact_phone_numbers`** export column, not from splitting `contact_mobile_phone`.
+
+In the VP CSV export, `contact_phone_numbers` is a **JSON-encoded array of phone-number strings**, not an array of objects. Read the CSV with a proper CSV parser first, then JSON-decode the cell once; CSV quote escaping is not part of the JSON value. If the data reader already decoded the cell, use the array of strings directly. Walk its string items in array order. Do not split on commas, inspect object values, stringify other types, or extract numbers from arbitrary text. An empty cell is ordinary no data. A malformed JSON cell, non-array value (including a single plain-text phone number), or non-string array item leaves the additional-phone fields unmapped for that row rather than guessing a format.
+
+For comparison only, trim surrounding whitespace and remove spaces, parentheses, hyphens, and dots from each number; preserve a leading `+` and any explicit country code. Exclude every value with the same comparison key as `contact_mobile_phone`, skip blank values, and deduplicate the remaining values by that key in first-occurrence order. The primary can occur anywhere in the array or be absent: do not drop the first item by position or require the primary to be present. Do not infer a country code, convert `00` prefixes, or drop extensions to force equality. Write each retained value exactly as supplied, not its comparison key.
+
+Map the first three retained values to VP Additional Phone Number 1, 2, and 3 respectively. The limit is three **additional** numbers, beyond the primary. Omit unused destinations without clearing existing values; ignore excess values. A missing destination keeps its assigned slot: do not shift its number into another property. Phone fields use the same pre-write mapping report and skip/no-data handling as ordinary fields—no extra prompts, missing-phone warnings, or overflow counts.
+
+The array may not be included in a particular export. If `contact_phone_numbers` is absent or empty, handle it as ordinary unavailable source data and preserve the primary mapping. Never invent extra numbers or fetch a different data source just to fill these fields.
 
 ## Companies: Vibe Prospecting business → HubSpot Company
 
