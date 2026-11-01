@@ -17,7 +17,7 @@ Vibe Prospecting field names are the column names in Vibe Prospecting results. H
 
 - Never create or modify HubSpot property definitions or enumeration options.
 - Before writing, check that each mapped destination exists on the correct object (Contacts for prospects, Companies for businesses).
-- For ordinary mapped fields, if a destination is missing or cannot accept the raw value (for example an invalid enumeration option), omit that field, report its HubSpot label and internal name, and continue with the other mapped fields. The required list name below is not an optional mapped field and must never be skipped.
+- For ordinary mapped fields, if a destination is missing or cannot accept the raw value (for example an invalid enumeration option), omit that field, report its HubSpot label and internal name, and continue with the other mapped fields. The list name below is required by default; skip it only when the user explicitly requests that exception.
 - Do not silently substitute another destination, and do not transform, split, truncate or derive values to make them fit. The only scoped exception is the additional-phone extraction described below; do not apply it to other fields.
 
 Custom destinations are marked **(custom)** and must be created by the user in HubSpot before they can receive data. Most use the `VP` label prefix and `vp_` internal-name prefix; the additional-phone defaults below use `additional_phone_number_1` through `additional_phone_number_3`. Users may change these defaults in their own skill instance.
@@ -26,15 +26,15 @@ Custom destinations are marked **(custom)** and must be created by the user in H
 
 If you edit a destination in a mapping table, use that row's edited label, internal name, and type—not the default property names mentioned elsewhere in this file.
 
-## Required list name before export
+## List name before export
 
-Before each new export for a HubSpot push, suggest a list name based on the user's request and conversation, then ask the user to approve it or provide a different name. Do not offer the dataset name as a default. If the user already explicitly supplied a name for this export, that is their confirmation; do not ask again. Never proceed with an unconfirmed or blank name, or silently reuse one from a different export.
+By default, before each new export for a HubSpot push, suggest a list name based on the user's request and conversation, then ask the user to approve it or provide a different name. Do not offer the dataset name as a default. If the user already explicitly supplied a name for this export, that is their confirmation; do not ask again. Do not proceed with an unconfirmed or blank name, or silently reuse one from a different export.
 
-**Required destination on Contacts and Companies:** **VP List Name**, internal name `vp_list_name`, single-line text, custom. This is required transfer metadata, not a Vibe result column or an optional field mapping. To use a different existing destination, the user must edit this destination's label, internal name, and type here and reinstall the skill; use that edited setting for checks, writes, and notifications.
+The default destination on Contacts and Companies is **VP List Name** (`vp_list_name`, single-line text, custom). The user may explicitly choose a different existing destination for this push or explicitly ask to skip the list-name field. Honor that choice for this push without requiring a skill edit or reinstall. Do not infer permission to skip or change the destination from a missing property or general export approval. For a lasting change to the default, the user may edit this destination in the skill and reinstall it.
 
-Before export, check live HubSpot property definitions on every object type included in the push. The required list-name destination must exist and accept the confirmed name on each one. If missing or incompatible on any target object, explicitly identify its label, internal name, and object type, and ask the user to create/fix it manually or edit their skill's required destination. **Stop the entire push before export until this is resolved and verified.** Do not create properties, skip the list name, or export/write only the other records or fields.
+Unless the user explicitly asked to skip the list name, check the chosen destination's live HubSpot property definition on every target object type before export. It must exist and accept the confirmed name. If missing or incompatible, identify its label, internal name, and object type, and ask the user to create/fix it manually, choose another existing property, or explicitly request skipping the list-name field. Stop the push before export until a usable destination is verified or the user explicitly requests skipping it. Never create properties or silently substitute a destination.
 
-Use the confirmed name unchanged on every contact and company inserted or updated. Recheck the required destination before any record writes; if it is no longer usable, stop the push rather than writing records without the name. The name approval is not approval for the export cost or HubSpot writes; retain the existing approval requirements. This is a field only: do not create a HubSpot list or add list memberships. Other fields retain ordinary mapping/reporting behavior without dedicated missing-field prompts.
+When the list name is not skipped, write the confirmed name unchanged on every contact and company inserted or updated. Recheck the chosen destination before record writes; if it is no longer usable, stop until resolved or the user explicitly requests skipping it. If the user explicitly requests skipping it, omit the field and reflect that choice in the pre-write report. The name approval or skip request is not approval for export cost or HubSpot writes; retain the existing approval requirements. This is a field only: do not create a HubSpot list or add list memberships. Other fields retain ordinary mapping/reporting behavior without dedicated missing-field prompts.
 
 ## Show the field mapping before writing to HubSpot (required)
 
@@ -50,7 +50,7 @@ After the Vibe Prospecting data is exported and before any record is created or 
    - **In HubSpot?**: ✅ Exists (mark standard vs custom where useful) or ❌ Missing.
    - **Written in this push?**: ✅ Yes; ➖ No data (destination exists but the field is empty for these rows, with a short reason, e.g. "emails only were requested"); or ❌ Skipped (destination missing or cannot accept the value).
    - Include every mapped field from the table, not only the ones being written, so the user sees what exists and what does not.
-   - Include the required list name on contacts/companies as a required value, not a skippable mapping; stop if it cannot be written. Add rows for Lead Status on new contacts and associations being created (e.g. contact → existing company, with its ID).
+   - Include the list name on contacts/companies, showing the chosen destination or that the user explicitly requested skipping it. Unless explicitly skipped, stop if it cannot be written. Add rows for Lead Status on new contacts and associations being created (e.g. contact → existing company, with its ID).
 4. Then ask for approval of the write as usual. The mapping report does not replace the HubSpot record-level confirmation; show both, or combine them in one message.
 
 ## Contacts: Vibe Prospecting prospect → HubSpot Contact
