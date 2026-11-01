@@ -51,7 +51,7 @@ After the Vibe Prospecting data is exported and before any record is created or 
    - **Written in this push?**: ✅ Yes; ➖ No data (destination exists but the field is empty for these rows, with a short reason, e.g. "emails only were requested"); or ❌ Skipped (destination missing or cannot accept the value).
    - Include every mapped field from the table, not only the ones being written, so the user sees what exists and what does not.
    - One report row per mapping-table row; never merge rows (e.g. Additional Phone Number 1–3 are three rows).
-   - Include the list name on contacts/companies, showing the chosen destination or that the user explicitly requested skipping it. Unless explicitly skipped, stop if it cannot be written. Add rows for Lead Status on new contacts and associations being created (e.g. contact → existing company, with its ID).
+   - Put the list-name row first in each contact/company report table and bold its label and value so it stands out from other fields. Show the chosen destination or that the user explicitly requested skipping it. Unless explicitly skipped, stop if it cannot be written. Add rows for Lead Status on new contacts and associations being created (e.g. contact → existing company, with its ID).
 4. Then ask for approval of the write as usual. The mapping report does not replace the HubSpot record-level confirmation; show both, or combine them in one message.
 
 ## Contacts: Vibe Prospecting prospect → HubSpot Contact
