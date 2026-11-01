@@ -4,9 +4,10 @@
 
 ### Added
 
-- A user-chosen export list name, with the dataset name offered as a default, mapped to `vp_list_name` on contacts and companies. Missing list-name destinations prompt the user to create or remap the property manually.
+- A required, user-confirmed export list name on every inserted or updated contact and company. The agent suggests a name from the conversation rather than using the dataset name as a default. Missing or incompatible list-name destinations block the entire push before export until manually resolved and verified.
 - Up to three additional contact phones from `contact_phone_numbers`, excluding the primary mobile and formatting-equivalent duplicates while preserving original values and source order.
 - User-editable `additional_phone_number_1`, `additional_phone_number_2`, and `additional_phone_number_3` destinations. Missing or unavailable phone fields use the ordinary mapping report; unused fields are not cleared.
+- Official API schema reference for the phone array, distinguishing its documented structure from actual VP tool/export availability.
 
 The primary `contact_mobile_phone` → `mobilephone` mapping is unchanged. Phone-array extraction applies only when that source column is available; it does not enable a missing export column or create HubSpot properties.
 
