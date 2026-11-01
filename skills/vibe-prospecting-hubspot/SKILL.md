@@ -20,7 +20,7 @@ Vibe Prospecting field names are the column names in Vibe Prospecting results. H
 - For ordinary mapped fields, if a destination is missing or cannot accept the raw value (for example an invalid enumeration option), omit that field, report its HubSpot label and internal name, and continue with the other mapped fields. The list name below is required by default; skip it only when the user explicitly requests that exception.
 - Do not silently substitute another destination, and do not transform, split, truncate or derive values to make them fit. The only scoped exception is the additional-phone extraction described below; do not apply it to other fields.
 
-Custom destinations are marked **(custom)** and must be created by the user in HubSpot before they can receive data. Most use the `VP` label prefix and `vp_` internal-name prefix; the additional-phone defaults below use `additional_phone_number_1` through `additional_phone_number_3`. Users may change these defaults in their own skill instance.
+Custom destinations are marked **(custom)** and must be created by the user in HubSpot before they can receive data. They use the `VP` label prefix and `vp_` internal-name prefix. Users may change these defaults in their own skill instance.
 
 **To change a destination:** create the property yourself in HubSpot (Settings → Properties), or pick an existing one. Then edit the row in this file: update the HubSpot label, internal name, type and the custom marker. Keep the Vibe Prospecting field name unchanged. Reinstall the updated skill.
 
@@ -50,7 +50,7 @@ After the Vibe Prospecting data is exported and before any record is created or 
    - **In HubSpot?**: ✅ Exists (mark standard vs custom where useful) or ❌ Missing.
    - **Written in this push?**: ✅ Yes; ➖ No data (destination exists but the field is empty for these rows, with a short reason, e.g. "emails only were requested"); or ❌ Skipped (destination missing or cannot accept the value).
    - Include every mapped field from the table, not only the ones being written, so the user sees what exists and what does not.
-   - One report row per mapping-table row; never merge rows (e.g. Additional Phone Number 1–3 are three rows).
+   - One report row per mapping-table row; never merge rows (e.g. VP Additional Phone Number 1–3 are three rows).
    - Put the list-name row first in each contact/company report table and bold its label and value so it stands out from other fields. Show the chosen destination or that the user explicitly requested skipping it. Unless explicitly skipped, stop if it cannot be written. Add rows for Lead Status on new contacts and associations being created (e.g. contact → existing company, with its ID).
 4. Then ask for approval of the write as usual. The mapping report does not replace the HubSpot record-level confirmation; show both, or combine them in one message.
 
@@ -62,9 +62,9 @@ After the Vibe Prospecting data is exported and before any record is created or 
 | `prospect_last_name` | Last Name | `lastname` | Single-line text |
 | `contact_professional_email` | Email | `email` | Single-line text |
 | `contact_mobile_phone` | Mobile Phone Number | `mobilephone` | Single-line text |
-| `contact_phone_numbers` (additional number 1; see extraction below) | Additional Phone Number 1 **(custom)** | `additional_phone_number_1` | Single-line text |
-| `contact_phone_numbers` (additional number 2; see extraction below) | Additional Phone Number 2 **(custom)** | `additional_phone_number_2` | Single-line text |
-| `contact_phone_numbers` (additional number 3; see extraction below) | Additional Phone Number 3 **(custom)** | `additional_phone_number_3` | Single-line text |
+| `contact_phone_numbers` (additional number 1; see extraction below) | VP Additional Phone Number 1 **(custom)** | `vp_additional_phone_number_1` | Single-line text |
+| `contact_phone_numbers` (additional number 2; see extraction below) | VP Additional Phone Number 2 **(custom)** | `vp_additional_phone_number_2` | Single-line text |
+| `contact_phone_numbers` (additional number 3; see extraction below) | VP Additional Phone Number 3 **(custom)** | `vp_additional_phone_number_3` | Single-line text |
 | `prospect_job_title` | Job Title | `jobtitle` | Single-line text |
 | `prospect_company_name` | Company Name | `company` | Single-line text |
 | `prospect_company_website` | Website URL | `website` | Single-line text |
@@ -92,7 +92,7 @@ In the VP CSV export, `contact_phone_numbers` is a **JSON-encoded array of phone
 
 For comparison only, trim surrounding whitespace and remove spaces, parentheses, hyphens, and dots from each number; preserve a leading `+` and any explicit country code. Exclude every value with the same comparison key as `contact_mobile_phone`, skip blank values, and deduplicate the remaining values by that key in first-occurrence order. The primary can occur anywhere in the array or be absent: do not drop the first item by position or require the primary to be present. Do not infer a country code, convert `00` prefixes, or drop extensions to force equality. Write each retained value exactly as supplied, not its comparison key.
 
-Map the first three retained values to Additional Phone Number 1, 2, and 3 respectively. The limit is three **additional** numbers, beyond the primary. Omit unused destinations without clearing existing values; ignore excess values. A missing destination keeps its assigned slot: do not shift its number into another property. Phone fields use the same pre-write mapping report and skip/no-data handling as ordinary fields—no extra prompts, missing-phone warnings, or overflow counts.
+Map the first three retained values to VP Additional Phone Number 1, 2, and 3 respectively. The limit is three **additional** numbers, beyond the primary. Omit unused destinations without clearing existing values; ignore excess values. A missing destination keeps its assigned slot: do not shift its number into another property. Phone fields use the same pre-write mapping report and skip/no-data handling as ordinary fields—no extra prompts, missing-phone warnings, or overflow counts.
 
 The array may not be included in a particular export. If `contact_phone_numbers` is absent or empty, handle it as ordinary unavailable source data and preserve the primary mapping. Never invent extra numbers or fetch a different data source just to fill these fields.
 
